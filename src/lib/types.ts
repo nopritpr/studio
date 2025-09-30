@@ -53,6 +53,7 @@ export interface VehicleState {
   acOn: boolean;
   acTemp: number;
   chargingLogs: ChargingLog[];
+  lastChargeLog?: { startTime: number; startSOC: number };
   speed: number;
   power: number;
   efficiency: number;

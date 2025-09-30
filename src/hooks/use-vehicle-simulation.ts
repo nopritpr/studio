@@ -33,6 +33,9 @@ export function useVehicleSimulation() {
   });
 
   const callAI = useCallback(async () => {
+    if (typeof state.batterySOC !== 'number') {
+      return; // Don't call AI if state is not ready
+    }
     try {
       const [rec, style, range, soh] = await Promise.all([
         getDrivingRecommendation({
@@ -233,7 +236,37 @@ export function useVehicleSimulation() {
   
   const toggleAC = () => setState({ acOn: !state.acOn });
   const setAcTemp = (temp: number) => setState({ acTemp: temp });
-  const toggleCharging = () => setState({ isCharging: !state.isCharging });
+  const toggleCharging = () => {
+    const isCharging = !state.isCharging;
+    const now = Date.now();
+    let newLogs = [...state.chargingLogs];
+
+    if (isCharging) {
+      // Start charging
+      setState({ 
+        isCharging,
+        lastChargeLog: {
+          startTime: now,
+          startSOC: state.batterySOC,
+        }
+      });
+    } else if (state.lastChargeLog) {
+      // Stop charging
+      const log = state.lastChargeLog;
+      const energyAdded = (state.batterySOC - log.startSOC) / 100 * state.packNominalCapacity_kWh;
+      newLogs.push({
+        ...log,
+        endTime: now,
+        endSOC: state.batterySOC,
+        energyAdded,
+      });
+      setState({ 
+        isCharging,
+        chargingLogs: newLogs.slice(-10), // Keep last 10 logs
+        lastChargeLog: undefined,
+      });
+    }
+  };
   const resetTrip = () => {
     if (state.activeTrip === 'A') setState({ tripA: 0 });
     else setState({ tripB: 0 });
