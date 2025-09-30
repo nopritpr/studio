@@ -7,20 +7,16 @@ import { Progress } from "@/components/ui/progress";
 import Image from "next/image";
 import SpeedGauge from "../charts/speed-gauge";
 import { cn } from "@/lib/utils";
-import type { VehicleState, DriveMode, VehiclePhysics, WeatherData, FiveDayForecast } from "@/lib/types";
+import type { VehicleState, DriveMode, WeatherData, FiveDayForecast } from "@/lib/types";
 import { MODE_SETTINGS } from "@/lib/constants";
 import NavigationMap from '../navigation-map';
 import Weather from '../weather';
 import { useToast } from "@/hooks/use-toast";
+import React, { useState, useEffect } from 'react';
 
 interface DashboardTabProps {
   state: VehicleState;
-  vehiclePhysics: VehiclePhysics;
-  weather: WeatherData | null;
-  forecast: FiveDayForecast | null;
-  lat: number;
-  lng: number;
-  onLocationChange: (lat: number, lng: number) => void;
+  setState: React.Dispatch<Partial<VehicleState>>;
   setDriveMode: (mode: DriveMode) => void;
   toggleAC: () => void;
   setAcTemp: (temp: number) => void;
@@ -31,12 +27,7 @@ interface DashboardTabProps {
 
 export default function DashboardTab({
   state,
-  vehiclePhysics,
-  weather,
-  forecast,
-  lat,
-  lng,
-  onLocationChange,
+  setState,
   setDriveMode,
   toggleAC,
   setAcTemp,
@@ -45,6 +36,46 @@ export default function DashboardTab({
   setActiveTrip,
 }: DashboardTabProps) {
   const { toast } = useToast();
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [forecast, setForecast] = useState<FiveDayForecast | null>(null);
+  const [lng, setLng] = useState(-122.4);
+  const [lat, setLat] = useState(37.8);
+
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(position => {
+        setLng(position.coords.longitude);
+        setLat(position.coords.latitude);
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchWeatherData = async () => {
+      if (!lat || !lng) return;
+      try {
+        const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`);
+        if (weatherResponse.ok) {
+          const weatherData = await weatherResponse.json();
+          setWeather(weatherData);
+          setState({ weather: weatherData, outsideTemp: weatherData.main.temp });
+        }
+
+        const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&units=metric&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`);
+        if (forecastResponse.ok) {
+          const forecastData = await forecastResponse.json();
+          setForecast(forecastData);
+        }
+      } catch (error) {
+        console.error("Failed to fetch weather data", error);
+      }
+    };
+
+    fetchWeatherData();
+    const interval = setInterval(fetchWeatherData, 300000);
+    return () => clearInterval(interval);
+  }, [lat, lng, setState]);
+
 
   const handleChargingToggle = () => {
     if (state.speed > 0 && !state.isCharging) {
@@ -73,7 +104,7 @@ export default function DashboardTab({
   return (
     <div className="h-full grid grid-cols-12 gap-4 min-h-0">
       {/* Left Column */}
-      <div className="col-span-12 md:col-span-3 flex flex-col gap-4">
+      <div className="col-span-12 md:col-span-3 flex flex-col gap-4 min-h-0">
         <Card className="p-4 flex flex-col">
           <h3 className="font-semibold mb-2 text-sm font-headline">Drive Mode</h3>
           <div className="grid grid-cols-3 gap-2">
@@ -158,12 +189,12 @@ export default function DashboardTab({
       </div>
 
       {/* Center Column */}
-      <Card className="col-span-12 md:col-span-6 p-4 flex flex-col relative min-h-[300px] md:min-h-0">
-        <NavigationMap lat={lat} lng={lng} onLocationChange={onLocationChange} />
+      <Card className="col-span-12 md:col-span-6 p-4 flex flex-col relative min-h-0">
+        <NavigationMap lat={lat} lng={lng} onLocationChange={(newLat, newLng) => {setLat(newLat); setLng(newLng);}} />
       </Card>
 
       {/* Right Column */}
-      <div className="col-span-12 md:col-span-3 flex flex-col gap-4">
+      <div className="col-span-12 md:col-span-3 flex flex-col gap-4 min-h-0">
         <div className="grid grid-cols-2 gap-4">
           <Card className="p-2 sm:p-4 h-full flex flex-col items-center justify-end relative overflow-hidden min-h-32">
             <div className={cn("road-background absolute inset-0 bg-[repeating-linear-gradient(theme(colors.muted),theme(colors.muted)_10px,theme(colors.secondary)_10px,theme(colors.secondary)_20px)] dark:bg-[repeating-linear-gradient(#4c4f5a,#4c4f5a_10px,#3c3e47_10px,#3c3e47_20px)] bg-[200%_200%]", state.speed > 1 && "animate-road-scroll")}></div>

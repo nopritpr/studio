@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useReducer } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useVehicleSimulation } from '@/hooks/use-vehicle-simulation';
 import Header from '@/components/dashboard/header';
 import DashboardTab from '@/components/dashboard/tabs/dashboard-tab';
@@ -9,25 +9,17 @@ import OptimizationTab from '@/components/dashboard/tabs/optimization-tab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import HelpModal from './help-modal';
 import ProfileModal from './profile-modal';
-import type { WeatherData, FiveDayForecast } from '@/lib/types';
-import Weather from './weather';
-
-function stateReducer(state: any, action: any) {
-  return { ...state, ...action };
-}
 
 export default function Dashboard() {
   const {
     state,
     setState,
-    vehiclePhysics,
     setDriveMode,
     toggleAC,
     setAcTemp,
     toggleCharging,
     resetTrip,
     setActiveTrip,
-    togglePerfMode,
     switchProfile,
     addProfile
   } = useVehicleSimulation();
@@ -35,55 +27,16 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isHelpModalOpen, setHelpModalOpen] = useState(false);
   const [isProfileModalOpen, setProfileModalOpen] = useState(false);
-  const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [forecast, setForecast] = useState<FiveDayForecast | null>(null);
-  const [lng, setLng] = useState(-122.4);
-  const [lat, setLat] = useState(37.8);
-
-  useEffect(() => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(position => {
-        setLng(position.coords.longitude);
-        setLat(position.coords.latitude);
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    const fetchWeatherData = async () => {
-      if (!lat || !lng) return;
-      try {
-        const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`);
-        if (weatherResponse.ok) {
-          const weatherData = await weatherResponse.json();
-          setWeather(weatherData);
-          setState({ weather: weatherData, outsideTemp: weatherData.main.temp });
-        }
-
-        const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&units=metric&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`);
-        if (forecastResponse.ok) {
-          const forecastData = await forecastResponse.json();
-          setForecast(forecastData);
-        }
-      } catch (error) {
-        console.error("Failed to fetch weather data", error);
-      }
-    };
-
-    fetchWeatherData();
-    const interval = setInterval(fetchWeatherData, 300000);
-    return () => clearInterval(interval);
-  }, [lat, lng, setState]);
 
   const cardProps = {
     state,
-    vehiclePhysics,
     setDriveMode,
     toggleAC,
     setAcTemp,
     toggleCharging,
     resetTrip,
     setActiveTrip,
+    setState,
   };
 
   return (
@@ -103,14 +56,6 @@ export default function Dashboard() {
           <TabsContent value="dashboard" className="h-full flex-grow min-h-0 data-[state=inactive]:hidden">
             <DashboardTab
               {...cardProps}
-              weather={weather}
-              forecast={forecast}
-              lat={lat}
-              lng={lng}
-              onLocationChange={(newLat, newLng) => {
-                setLat(newLat);
-                setLng(newLng);
-              }}
             />
           </TabsContent>
           <TabsContent value="analytics" className="h-full flex-grow min-h-0 data-[state=inactive]:hidden">
