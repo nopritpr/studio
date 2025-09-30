@@ -35,7 +35,7 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
         return [
             (patterns.Morning / total) * 100,
             (patterns.Afternoon / total) * 100,
-            (patterns.Evening / total) * 100,
+            (patterns.Evening / total)- 100,
             (patterns.Night / total) * 100,
             (patterns.Weekend / total) * 100,
         ];
@@ -105,19 +105,23 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                 </div>
             </Card>
 
-            <Card className="p-4 col-span-5 md:col-span-3 -mt-16">
-              <h3 className="font-semibold mb-1 text-sm font-headline flex items-center gap-2"><TrendingUp className="w-4 h-4" />Battery & Range</h3>
-              <div className="relative w-full h-4 bg-muted rounded-full overflow-hidden mb-2">
-                  <Progress value={state.batterySOC} className="h-4" />
-                  {state.isCharging && <div className="absolute inset-0 w-full h-full bg-[linear-gradient(90deg,hsla(0,0%,100%,.1)_25%,transparent_25%)] bg-[length:1rem_1rem] animate-charge-shine" />}
-              </div>
-              <div className="flex justify-between items-end mt-1 text-base font-semibold">
-                  <span className="text-lg">{state.batterySOC.toFixed(1)}%</span>
-                  <div className="text-right">
-                      <span className="font-semibold text-lg">{Math.round( (state.packSOH/100) * state.packUsableFraction * state.batteryCapacity_kWh / (state.recentWhPerKm > 0 ? state.recentWhPerKm/1000 : 0.18) * (state.batterySOC/100) )} km</span>
-                      <p className="text-xs text-primary font-normal" title="Based on driving style, temperature, and usage patterns">AI: {Math.round(state.predictedDynamicRange)} km</p>
-                  </div>
-              </div>
+            <Card className="p-4 col-span-5 md:col-span-3">
+              <CardHeader className="p-0 mb-1">
+                <CardTitle className="font-semibold text-sm font-headline flex items-center gap-2"><TrendingUp className="w-4 h-4" />Battery & Range</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="relative w-full h-4 bg-muted rounded-full overflow-hidden mb-2">
+                    <Progress value={state.batterySOC} className="h-4" />
+                    {state.isCharging && <div className="absolute inset-0 w-full h-full bg-[linear-gradient(90deg,hsla(0,0%,100%,.1)_25%,transparent_25%)] bg-[length:1rem_1rem] animate-charge-shine" />}
+                </div>
+                <div className="flex justify-between items-end mt-1 text-base font-semibold">
+                    <span className="text-lg">{state.batterySOC.toFixed(1)}%</span>
+                    <div className="text-right">
+                        <span className="font-semibold text-lg">{Math.round( (state.packSOH/100) * state.packUsableFraction * state.batteryCapacity_kWh / (state.recentWhPerKm > 0 ? state.recentWhPerKm/1000 : 0.18) * (state.batterySOC/100) )} km</span>
+                        <p className="text-xs text-primary font-normal" title="Based on driving style, temperature, and usage patterns">AI: {Math.round(state.predictedDynamicRange)} km</p>
+                    </div>
+                </div>
+              </CardContent>
             </Card>
         </div>
     );
