@@ -169,7 +169,3 @@ declare module "@/components/ui/button" {
     size?: "default" | "sm" | "lg" | "icon" | "xs";
   }
 }
-import { cva } from "class-variance-authority";
-import { buttonVariants } from "@/components/ui/button";
-//@ts-ignore
-buttonVariants.size.xs = "h-7 rounded-md px-2 text-xs";
