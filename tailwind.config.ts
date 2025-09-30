@@ -91,18 +91,26 @@ export default {
         },
         'road-scroll': {
           '0%': { backgroundPosition: '0 0' },
-          '100%': { backgroundPosition: '0 -20px' },
+          '100%': { backgroundPosition: '0 100vh' },
         },
         'charge-shine': {
           '0%': { backgroundPosition: '-1rem 0' },
           '100%': { backgroundPosition: '1rem 0' },
+        },
+        'car-drive': {
+          '0%': { transform: 'translateY(0) rotate(0deg)' },
+          '25%': { transform: 'translateY(-1px) rotate(-0.2deg)' },
+          '50%': { transform: 'translateY(0) rotate(0deg)' },
+          '75%': { transform: 'translateY(1px) rotate(0.2deg)' },
+          '100%': { transform: 'translateY(0) rotate(0deg)' },
         }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'road-scroll': 'road-scroll 0.5s linear infinite',
+        'road-scroll': 'road-scroll var(--speed-duration) linear infinite',
         'charge-shine': 'charge-shine 1s linear infinite',
+        'car-drive': 'car-drive 0.5s ease-in-out infinite',
       },
       aspectRatio: {
         '16/9': '16 / 9',

@@ -64,6 +64,41 @@
   }
 }
 
+.road-animation {
+    background-image:
+        radial-gradient(ellipse at 50% 100%, hsl(var(--secondary)) 0%, transparent 40%),
+        linear-gradient(90deg,
+            transparent 48%,
+            hsl(var(--muted-foreground) / 0.15) 48%,
+            hsl(var(--muted-foreground) / 0.15) 52%,
+            transparent 52%
+        ),
+        repeating-linear-gradient(0deg,
+            transparent,
+            transparent 95px,
+            hsl(var(--muted-foreground) / 0.2) 95px,
+            hsl(var(--muted-foreground) / 0.2) 100px
+        );
+}
+
+.dark .road-animation {
+    background-image:
+        radial-gradient(ellipse at 50% 100%, hsl(var(--secondary)/0.5) 0%, transparent 40%),
+        linear-gradient(90deg,
+            transparent 48%,
+            hsl(var(--muted-foreground) / 0.2) 48%,
+            hsl(var(--muted-foreground) / 0.2) 52%,
+            transparent 52%
+        ),
+        repeating-linear-gradient(0deg,
+            transparent,
+            transparent 95px,
+            hsl(var(--muted-foreground) / 0.2) 95px,
+            hsl(var(--muted-foreground) / 0.2) 100px
+        );
+}
+
+
 .mapboxgl-ctrl-geocoder,
 .mapboxgl-ctrl-geocoder *,
 .mapboxgl-ctrl-geocoder *:after,

@@ -191,16 +191,26 @@ export default function DashboardTab({
       {/* Right Column */}
       <div className="col-span-12 md:col-span-3 flex flex-col gap-4 min-h-0">
         <div className="grid grid-cols-2 gap-4">
-          <Card className="p-2 sm:p-4 h-full flex flex-col items-center justify-end relative overflow-hidden min-h-32">
-            <div className={cn("road-background absolute inset-0 bg-[repeating-linear-gradient(theme(colors.muted),theme(colors.muted)_10px,theme(colors.secondary)_10px,theme(colors.secondary)_20px)] dark:bg-[repeating-linear-gradient(#4c4f5a,#4c4f5a_10px,#3c3e47_10px,#3c3e47_20px)] bg-[200%_200%]", state.speed > 1 && "animate-road-scroll")}></div>
-             <Image
-                src="https://assets.codepen.io/285131/ev-car-2.png"
-                alt="EV Car"
-                width={200}
-                height={100}
-                className="relative z-10 w-[95%] h-auto drop-shadow-2xl"
-                style={{ filter: 'drop-shadow(0 10px 8px rgba(0,0,0,0.4))' }}
-              />
+          <Card className="p-2 sm:p-4 h-full flex flex-col items-center justify-center relative overflow-hidden min-h-32 bg-secondary/50 dark:bg-muted/30">
+            <div
+              className={cn(
+                'road-animation absolute inset-0 w-full h-full bg-no-repeat bg-center bg-cover',
+                state.speed > 1 && 'animate-road-scroll'
+              )}
+              style={{
+                '--speed-duration': `${Math.max(0.2, 3 - state.speed / 40)}s`,
+              } as React.CSSProperties}
+            ></div>
+            <Image
+              src="https://assets.codepen.io/285131/car-128.png"
+              alt="EV Car"
+              width={128}
+              height={64}
+              className={cn('relative z-10 w-[128px] h-auto transition-transform duration-500 ease-out', state.speed > 1 && 'animate-car-drive')}
+              style={{
+                filter: 'drop-shadow(0 10px 8px rgba(0,0,0,0.4))',
+              }}
+            />
           </Card>
           <Card className="p-0 sm:p-2 h-full flex flex-col items-center justify-center relative min-h-32">
             <SpeedGauge speed={state.displaySpeed} driveMode={state.driveMode} />
