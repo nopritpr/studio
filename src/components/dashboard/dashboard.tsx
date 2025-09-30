@@ -37,18 +37,30 @@ export default function Dashboard() {
   const [isProfileModalOpen, setProfileModalOpen] = useState(false);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [forecast, setForecast] = useState<FiveDayForecast | null>(null);
+  const [lng, setLng] = useState(-122.4);
+  const [lat, setLat] = useState(37.8);
+
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(position => {
+        setLng(position.coords.longitude);
+        setLat(position.coords.latitude);
+      });
+    }
+  }, []);
 
   useEffect(() => {
     const fetchWeatherData = async () => {
+      if (!lat || !lng) return;
       try {
-        const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=37.8&lon=-122.4&units=metric&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`);
+        const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`);
         if (weatherResponse.ok) {
           const weatherData = await weatherResponse.json();
           setWeather(weatherData);
           setState({ weather: weatherData, outsideTemp: weatherData.main.temp });
         }
 
-        const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=37.8&lon=-122.4&units=metric&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`);
+        const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&units=metric&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`);
         if (forecastResponse.ok) {
           const forecastData = await forecastResponse.json();
           setForecast(forecastData);
@@ -61,7 +73,7 @@ export default function Dashboard() {
     fetchWeatherData();
     const interval = setInterval(fetchWeatherData, 300000);
     return () => clearInterval(interval);
-  }, [setState]);
+  }, [lat, lng, setState]);
 
   const cardProps = {
     state,
@@ -90,7 +102,17 @@ export default function Dashboard() {
               <TabsTrigger value="optimization">Optimization</TabsTrigger>
             </TabsList>
             <TabsContent value="dashboard" className="h-full flex-grow min-h-0 data-[state=inactive]:hidden">
-              <DashboardTab {...cardProps} weather={weather} forecast={forecast} />
+              <DashboardTab
+                {...cardProps}
+                weather={weather}
+                forecast={forecast}
+                lat={lat}
+                lng={lng}
+                onLocationChange={(newLat, newLng) => {
+                  setLat(newLat);
+                  setLng(newLng);
+                }}
+              />
             </TabsContent>
             <TabsContent value="analytics" className="h-full flex-grow min-h-0 data-[state=inactive]:hidden">
               <AnalyticsTab {...cardProps} />
