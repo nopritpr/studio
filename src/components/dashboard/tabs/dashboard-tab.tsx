@@ -71,9 +71,9 @@ export default function DashboardTab({
   }
 
   return (
-    <div className="h-full grid grid-cols-12 grid-rows-6 gap-4 min-h-0">
+    <div className="h-full grid grid-cols-12 gap-4 min-h-0">
       {/* Left Column */}
-      <div className="col-span-12 md:col-span-3 row-span-6 flex flex-col gap-4">
+      <div className="col-span-12 md:col-span-3 flex flex-col gap-4">
         <Card className="p-4 flex flex-col">
           <h3 className="font-semibold mb-2 text-sm font-headline">Drive Mode</h3>
           <div className="grid grid-cols-3 gap-2">
@@ -132,7 +132,7 @@ export default function DashboardTab({
           </div>
         </Card>
 
-        <Card className="p-4 flex flex-col">
+        <Card className="p-4 flex flex-col flex-grow min-h-0">
           <h3 className="font-semibold mb-3 text-sm font-headline">Climate</h3>
           <div className="flex-grow flex flex-col justify-between gap-4 py-2">
             <div className="flex items-center justify-between w-full">
@@ -158,14 +158,14 @@ export default function DashboardTab({
       </div>
 
       {/* Center Column */}
-      <Card className="col-span-12 md:col-span-6 row-span-6 p-4 flex flex-col relative">
+      <Card className="col-span-12 md:col-span-6 p-4 flex flex-col relative min-h-[300px] md:min-h-0">
         <NavigationMap lat={lat} lng={lng} onLocationChange={onLocationChange} />
       </Card>
 
       {/* Right Column */}
-      <div className="col-span-12 md:col-span-3 row-span-6 flex flex-col gap-4">
+      <div className="col-span-12 md:col-span-3 flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-4">
-          <Card className="p-2 sm:p-4 h-full flex flex-col items-center justify-end relative overflow-hidden">
+          <Card className="p-2 sm:p-4 h-full flex flex-col items-center justify-end relative overflow-hidden min-h-32">
             <div className={cn("road-background absolute inset-0 bg-[repeating-linear-gradient(theme(colors.muted),theme(colors.muted)_10px,theme(colors.secondary)_10px,theme(colors.secondary)_20px)] dark:bg-[repeating-linear-gradient(#4c4f5a,#4c4f5a_10px,#3c3e47_10px,#3c3e47_20px)] bg-[200%_200%]", state.speed > 1 && "animate-road-scroll")}></div>
              <Image
                 src="https://assets.codepen.io/285131/ev-car-2.png"
@@ -176,12 +176,12 @@ export default function DashboardTab({
                 style={{ filter: 'drop-shadow(0 10px 8px rgba(0,0,0,0.4))' }}
               />
           </Card>
-          <Card className="p-0 sm:p-2 h-full flex flex-col items-center justify-center relative">
+          <Card className="p-0 sm:p-2 h-full flex flex-col items-center justify-center relative min-h-32">
             <SpeedGauge speed={state.displaySpeed} driveMode={state.driveMode} />
           </Card>
         </div>
 
-        <div className="flex-grow">
+        <div className="flex-grow min-h-0">
           <Weather weather={weather} forecast={forecast} />
         </div>
 

@@ -87,45 +87,43 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="w-full max-w-[1280px] aspect-video bg-card/50 text-foreground flex flex-col rounded-2xl shadow-2xl overflow-hidden border p-2 sm:p-4 md:p-6 min-h-0 h-full font-body">
+    <div className="w-full max-w-[1280px] bg-card/50 text-foreground flex flex-col rounded-2xl shadow-2xl overflow-hidden border p-2 sm:p-4 md:p-6 min-h-0 h-full font-body">
       <Header
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onHelpClick={() => setHelpModalOpen(true)}
       />
-      <main className="flex-grow pt-4 overflow-hidden flex gap-4">
-        <div className="flex-grow h-full">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-            <TabsList className="hidden">
-              <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
-              <TabsTrigger value="optimization">Optimization</TabsTrigger>
-            </TabsList>
-            <TabsContent value="dashboard" className="h-full flex-grow min-h-0 data-[state=inactive]:hidden">
-              <DashboardTab
-                {...cardProps}
-                weather={weather}
-                forecast={forecast}
-                lat={lat}
-                lng={lng}
-                onLocationChange={(newLat, newLng) => {
-                  setLat(newLat);
-                  setLng(newLng);
-                }}
-              />
-            </TabsContent>
-            <TabsContent value="analytics" className="h-full flex-grow min-h-0 data-[state=inactive]:hidden">
-              <AnalyticsTab {...cardProps} />
-            </TabsContent>
-            <TabsContent value="optimization" className="h-full flex-grow min-h-0 data-[state=inactive]:hidden">
-              <OptimizationTab
-                state={state}
-                onProfileSwitchClick={() => setProfileModalOpen(true)}
-                onStabilizerToggle={() => setState(prev => ({...prev, stabilizerEnabled: !prev.stabilizerEnabled}))}
-              />
-            </TabsContent>
-          </Tabs>
-        </div>
+      <main className="flex-grow pt-4 overflow-hidden min-h-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+          <TabsList className="hidden">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="optimization">Optimization</TabsTrigger>
+          </TabsList>
+          <TabsContent value="dashboard" className="h-full flex-grow min-h-0 data-[state=inactive]:hidden">
+            <DashboardTab
+              {...cardProps}
+              weather={weather}
+              forecast={forecast}
+              lat={lat}
+              lng={lng}
+              onLocationChange={(newLat, newLng) => {
+                setLat(newLat);
+                setLng(newLng);
+              }}
+            />
+          </TabsContent>
+          <TabsContent value="analytics" className="h-full flex-grow min-h-0 data-[state=inactive]:hidden">
+            <AnalyticsTab {...cardProps} />
+          </TabsContent>
+          <TabsContent value="optimization" className="h-full flex-grow min-h-0 data-[state=inactive]:hidden">
+            <OptimizationTab
+              state={state}
+              onProfileSwitchClick={() => setProfileModalOpen(true)}
+              onStabilizerToggle={() => setState(prev => ({...prev, stabilizerEnabled: !prev.stabilizerEnabled}))}
+            />
+          </TabsContent>
+        </Tabs>
       </main>
       <HelpModal isOpen={isHelpModalOpen} onOpenChange={setHelpModalOpen} />
       <ProfileModal 
