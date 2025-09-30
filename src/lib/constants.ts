@@ -102,8 +102,8 @@ export const MODE_SETTINGS: Record<
   }
 > = {
   Eco: {
-    maxSpeed: 100,
-    accelRate: 8,
+    maxSpeed: 45,
+    accelRate: 20,
     decelRate: 2.0,
     brakeRate: 15,
     regenEfficiency: 0.9,
@@ -111,8 +111,8 @@ export const MODE_SETTINGS: Record<
     baseConsumption: 111, // Wh/km to achieve ~450km range on 50kWh
   },
   City: {
-    maxSpeed: 120,
-    accelRate: 12,
+    maxSpeed: 75,
+    accelRate: 30,
     decelRate: 1.5,
     brakeRate: 25,
     regenEfficiency: 0.8,
@@ -120,8 +120,8 @@ export const MODE_SETTINGS: Record<
     baseConsumption: 119, // Wh/km to achieve ~420km range
   },
   Sports: {
-    maxSpeed: 160,
-    accelRate: 20,
+    maxSpeed: 120,
+    accelRate: 50,
     decelRate: 1.0,
     brakeRate: 35,
     regenEfficiency: 0.65,
