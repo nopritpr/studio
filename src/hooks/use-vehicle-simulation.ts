@@ -152,11 +152,10 @@ export function useVehicleSimulation() {
 
     let totalPower_kW = 0;
     let newSOC = state.batterySOC;
-    let socChange = 0;
 
     if (state.isCharging) {
         const chargeSocPerSecond = 1.0;
-        socChange = chargeSocPerSecond * timeDelta;
+        const socChange = chargeSocPerSecond * timeDelta;
         newSOC += socChange;
         totalPower_kW = -EV_CONSTANTS.chargeRate_kW;
     } else {
@@ -165,17 +164,17 @@ export function useVehicleSimulation() {
             totalPower_kW = -physics.regenPower;
         } else {
             physics.regenPower = 0;
-            motorPower_kW = Math.max(0, motorPower_kW);
+            motorPower_kW = Math.max(0, motorPower_kW); // Power can't be negative if not regenerating
             totalPower_kW = (motorPower_kW / modeSettings.powerFactor) / EV_CONSTANTS.drivetrainEfficiency + acPower_kW + accessoryPower_kW;
         }
 
         const energyConsumed_kWh = totalPower_kW * (timeDelta / 3600);
         const socChange_percent = (energyConsumed_kWh / state.packNominalCapacity_kWh) * 100;
         newSOC -= socChange_percent;
-        socChange = -socChange_percent;
     }
     
     newSOC = Math.max(0, Math.min(100, newSOC));
+    const socChange = newSOC - state.batterySOC;
     newState.batterySOC = newSOC;
 
     // --- History & Other Metrics ---
@@ -183,7 +182,7 @@ export function useVehicleSimulation() {
     const newAccelerationHistory = [physics.acceleration, ...state.accelerationHistory].slice(0, 50);
     const newPowerHistory = [totalPower_kW, ...state.powerHistory].slice(0,50);
     const newDriveModeHistory = [state.driveMode, ...state.driveModeHistory].slice(0, 50);
-    const newWhPerKm = newSpeed > 0 ? (totalPower_kW * 1000) / newSpeed : state.efficiency;
+    const newWhPerKm = newSpeed > 1 ? (totalPower_kW * 1000) / newSpeed : 0;
     
     const recentWhPerKmWindow = [isFinite(newWhPerKm) && newWhPerKm > 0 ? newWhPerKm : state.recentWhPerKm, ...state.recentWhPerKmWindow].slice(0,100);
     const recentWhPerKm = recentWhPerKmWindow.reduce((a, b) => a + b, 0) / recentWhPerKmWindow.length;
