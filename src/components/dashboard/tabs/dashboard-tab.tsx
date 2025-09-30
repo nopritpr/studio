@@ -8,9 +8,8 @@ import Image from "next/image";
 import SpeedGauge from "../charts/speed-gauge";
 import { cn } from "@/lib/utils";
 import type { VehicleState, DriveMode, VehiclePhysics } from "@/lib/types";
-import { Sun, Wind, Droplets, CloudRain } from "lucide-react";
 import { MODE_SETTINGS } from "@/lib/constants";
-import Map from 'react-map-gl';
+import NavigationMap from '../navigation-map';
 
 interface DashboardTabProps {
   state: VehicleState;
@@ -88,20 +87,8 @@ export default function DashboardTab({
       </Card>
 
       {/* Center Column */}
-      <Card className="col-span-12 md:col-span-6 row-span-3 md:row-span-6 p-4 flex flex-col">
-        <h3 className="font-semibold mb-2 text-sm font-headline">Navigation</h3>
-        <div className="flex-1 min-h-0 rounded-md bg-muted overflow-hidden">
-        <Map
-            mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_API_KEY}
-            initialViewState={{
-              longitude: -122.4,
-              latitude: 37.8,
-              zoom: 14
-            }}
-            style={{width: '100%', height: '100%'}}
-            mapStyle="mapbox://styles/mapbox/dark-v11"
-          />
-        </div>
+      <Card className="col-span-12 md:col-span-6 row-span-3 md:row-span-6 p-4 flex flex-col relative">
+        <NavigationMap />
       </Card>
 
       {/* Right Column */}
@@ -164,11 +151,4 @@ export default function DashboardTab({
       </Card>
     </div>
   );
-}
-
-// Button "xs" size variant
-declare module "@/components/ui/button" {
-  interface ButtonProps {
-    size?: "default" | "sm" | "lg" | "icon" | "xs";
-  }
 }

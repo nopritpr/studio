@@ -3,6 +3,8 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import '@mapbox/mapbox-gl-directions/dist/mapbox-gl-directions.css';
+
 
 export const metadata: Metadata = {
   title: 'Electron Drive',

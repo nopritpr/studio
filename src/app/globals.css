@@ -63,3 +63,185 @@
     @apply bg-background text-foreground;
   }
 }
+
+.mapboxgl-ctrl-geocoder,
+.mapboxgl-ctrl-geocoder *,
+.mapboxgl-ctrl-geocoder *:after,
+.mapboxgl-ctrl-geocoder *:before {
+  box-sizing: border-box;
+}
+.mapboxgl-ctrl-geocoder {
+  font-size: 15px;
+  line-height: 20px;
+  font-family: var(--font-body);
+  position: relative;
+  background-color: hsl(var(--card));
+  width: 100%;
+  min-width: 240px;
+  z-index: 1;
+  border-radius: var(--radius);
+}
+
+.mapboxgl-ctrl-geocoder--collapsed {
+  width: 50px;
+  min-width: 50px;
+  transition: width .25s, min-width .25s;
+}
+
+.mapboxgl-ctrl-geocoder .mapboxgl-ctrl-geocoder--input {
+  font: inherit;
+  width: 100%;
+  border: 0;
+  background-color: transparent;
+  height: 50px;
+  margin: 0;
+  color: hsl(var(--foreground));
+  padding: 6px 45px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  outline: none;
+}
+
+.mapboxgl-ctrl-geocoder .mapboxgl-ctrl-geocoder--input:focus {
+  outline: none;
+}
+
+.mapboxgl-ctrl-geocoder .mapboxgl-ctrl-geocoder--input::-ms-clear {
+  display: none;
+}
+
+.mapboxgl-ctrl-geocoder .mapboxgl-ctrl-geocoder--button {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  background-color: transparent;
+}
+
+.mapboxgl-ctrl-geocoder .mapboxgl-ctrl-geocoder--button svg {
+  width: 100%;
+  height: 100%;
+  fill: hsl(var(--muted-foreground));
+}
+
+.mapboxgl-ctrl-geocoder--collapsed .mapboxgl-ctrl-geocoder--button {
+  left: 15px;
+}
+
+.mapboxgl-ctrl-geocoder .mapboxgl-ctrl-geocoder--button:hover svg {
+  fill: hsl(var(--foreground));
+}
+
+.mapboxgl-ctrl-geocoder .mapboxgl-ctrl-geocoder--button.mapboxgl-ctrl-geocoder--close {
+  right: 15px;
+  left: auto;
+  display: none;
+}
+
+.mapboxgl-ctrl-geocoder--active .mapboxgl-ctrl-geocoder--button.mapboxgl-ctrl-geocoder--close {
+  display: block;
+}
+
+
+.mapboxgl-ctrl-geocoder .mapboxgl-ctrl-geocoder--pin-right > * {
+  z-index: 2;
+  position: absolute;
+  right: 10px;
+  top: 15px;
+  display: none;
+}
+
+.mapboxgl-ctrl-geocoder .mapboxgl-ctrl-geocoder--pin-right > .mapboxgl-ctrl-geocoder--loading {
+  display: block;
+  animation: mapbox-gl-geocoder-spin 1s linear infinite;
+}
+
+@keyframes mapbox-gl-geocoder-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+
+.mapboxgl-ctrl-geocoder .suggestions {
+  background-color: hsl(var(--card));
+  border-radius: var(--radius);
+  left: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  width: 100%;
+  top: 110%; /* Account for shadow */
+  z-index: 1000;
+  overflow: hidden;
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+}
+
+.mapboxgl-ctrl-bottom-left .suggestions,
+.mapboxgl-ctrl-bottom-right .suggestions {
+  top: auto;
+  bottom: 100%;
+}
+
+.mapboxgl-ctrl-geocoder .suggestions > .active > a,
+.mapboxgl-ctrl-geocoder .suggestions > li > a:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+  cursor: pointer;
+}
+
+.mapboxgl-ctrl-geocoder .suggestions li > a {
+  cursor: pointer;
+  display: block;
+  padding: 6px 12px;
+  color: hsl(var(--foreground));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mapbox-directions-component {
+  width: 100%;
+}
+.mapboxgl-ctrl-directions {
+    background-color: hsl(var(--card));
+    border-radius: var(--radius);
+    box-shadow: none !important;
+}
+.mapboxgl-ctrl-directions .directions-control-instructions,
+.mapboxgl-ctrl-directions .directions-control-inputs,
+.mapboxgl-ctrl-directions .directions-control-summary,
+.mapboxgl-ctrl-directions .mapbox-directions-profile {
+    background-color: hsl(var(--card));
+    color: hsl(var(--foreground));
+}
+
+.mapboxgl-ctrl-directions .directions-control-inputs input {
+    color: hsl(var(--foreground));
+}
+
+.mapboxgl-ctrl-directions .directions-control-inputs {
+    padding: 10px;
+    border-bottom: 1px solid hsl(var(--border));
+}
+
+.mapboxgl-ctrl-directions .directions-origin,
+.mapboxgl-ctrl-directions .directions-destination {
+    position: relative;
+    width: 100%;
+    border: 0;
+    margin-bottom: 10px;
+}
+.mapboxgl-ctrl-directions .directions-origin .mapboxgl-ctrl-geocoder,
+.mapboxgl-ctrl-directions .directions-destination .mapboxgl-ctrl-geocoder {
+    width: 100%;
+}
+
+.mapbox-directions-origin-icon, .mapbox-directions-destination-icon {
+  fill: hsl(var(--primary)) !important;
+}
