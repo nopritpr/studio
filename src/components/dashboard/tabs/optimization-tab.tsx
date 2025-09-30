@@ -6,7 +6,7 @@ import Image from "next/image";
 import EcoScoreGauge from "../charts/eco-score-gauge";
 import SohForecastChart from "../charts/soh-forecast-chart";
 import type { VehicleState } from "@/lib/types";
-import { Leaf, User, BrainCircuit, BarChart, ChevronRight } from "lucide-react";
+import { Leaf, User, BrainCircuit, BarChart, ChevronRight, HeartPulse } from "lucide-react";
 
 interface OptimizationTabProps {
     state: VehicleState;
