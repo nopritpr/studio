@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useReducer } from 'react';
 import { useVehicleSimulation } from '@/hooks/use-vehicle-simulation';
 import Header from '@/components/dashboard/header';
 import DashboardTab from '@/components/dashboard/tabs/dashboard-tab';
@@ -10,7 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import HelpModal from './help-modal';
 import ProfileModal from './profile-modal';
 import type { WeatherData, FiveDayForecast } from '@/lib/types';
-import WeeklyForecast from './weekly-forecast';
+import Weather from './weather';
+
+function stateReducer(state: any, action: any) {
+  return { ...state, ...action };
+}
 
 export default function Dashboard() {
   const {
@@ -37,7 +41,6 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchWeatherData = async () => {
       try {
-        // Fetch current weather
         const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=37.8&lon=-122.4&units=metric&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`);
         if (weatherResponse.ok) {
           const weatherData = await weatherResponse.json();
@@ -45,7 +48,6 @@ export default function Dashboard() {
           setState({ weather: weatherData, outsideTemp: weatherData.main.temp });
         }
 
-        // Fetch 5-day forecast
         const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=37.8&lon=-122.4&units=metric&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`);
         if (forecastResponse.ok) {
           const forecastData = await forecastResponse.json();
@@ -57,7 +59,7 @@ export default function Dashboard() {
     };
 
     fetchWeatherData();
-    const interval = setInterval(fetchWeatherData, 300000); // every 5 minutes
+    const interval = setInterval(fetchWeatherData, 300000);
     return () => clearInterval(interval);
   }, [setState]);
 
@@ -78,9 +80,6 @@ export default function Dashboard() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onHelpClick={() => setHelpModalOpen(true)}
-        togglePerfMode={togglePerfMode}
-        isPerfMode={state.stabilizerEnabled}
-        weather={weather}
       />
       <main className="flex-grow pt-4 overflow-hidden flex gap-4">
         <div className="flex-grow h-full">
@@ -105,8 +104,8 @@ export default function Dashboard() {
             </TabsContent>
           </Tabs>
         </div>
-        <div className="w-24 flex-shrink-0 hidden md:flex">
-          <WeeklyForecast forecast={forecast} />
+        <div className="w-64 flex-shrink-0 hidden md:flex">
+          <Weather weather={weather} forecast={forecast} />
         </div>
       </main>
       <HelpModal isOpen={isHelpModalOpen} onOpenChange={setHelpModalOpen} />
