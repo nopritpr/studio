@@ -21,7 +21,7 @@ export default function DynamicRangeChart({ state }: DynamicRangeChartProps) {
     const weights = {
       ac: state.acOn ? 0.3 : 0,
       temp: Math.abs(22 - state.outsideTemp) > 5 ? 0.2 : 0,
-      driveMode: state.driveMode !== 'Eco' ? 0.4 : 0,
+      driveMode: state.driveMode === 'Sports' ? 0.4 : (state.driveMode === 'City' ? 0.2 : 0),
       load: (state.passengers > 1 || state.goodsInBoot) ? 0.1 : 0,
     };
 
@@ -33,8 +33,6 @@ export default function DynamicRangeChart({ state }: DynamicRangeChartProps) {
         driveMode: totalWeight > 0 ? (weights.driveMode / totalWeight) * totalPenalty : 0,
         load: totalWeight > 0 ? (weights.load / totalWeight) * totalPenalty : 0,
     };
-    
-    const remainingIdeal = idealRange - penalties.ac - penalties.temp - penalties.driveMode - penalties.load;
     
     const data = [
         { name: 'Ideal', value: idealRange, fill: 'hsl(var(--chart-2))' },
@@ -78,7 +76,14 @@ export default function DynamicRangeChart({ state }: DynamicRangeChartProps) {
                 dataKey="value"
                 position="right"
                 offset={8}
-                formatter={(value: number) => value !== 0 ? `${Math.round(value)} km` : ''}
+                formatter={(value: number) => {
+                  const numValue = Number(value);
+                  if (numValue === 0) return '';
+                  const roundedValue = Math.round(numValue);
+                  // For negative values, we want to show them as positive penalties.
+                  if (roundedValue < 0) return `-${Math.abs(roundedValue)} km`;
+                  return `${roundedValue} km`;
+                }}
                 className="fill-foreground font-semibold text-xs"
             />
         </Bar>
