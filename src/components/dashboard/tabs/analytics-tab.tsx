@@ -41,7 +41,7 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
         ];
     }
     
-    const savings = state.odometer * (5 - 2);
+    const savings = state.odometer * (8 - 2);
 
     return (
         <div className="h-full grid grid-cols-5 grid-rows-2 gap-4 min-h-0">
