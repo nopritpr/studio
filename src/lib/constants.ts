@@ -11,6 +11,8 @@ export const defaultState: VehicleState = {
   driveMode: 'Eco',
   acOn: false,
   acTemp: 22,
+  passengers: 1,
+  goodsInBoot: false,
   chargingLogs: [],
   speed: 0,
   power: 0,
@@ -104,19 +106,19 @@ export const MODE_SETTINGS: Record<
   }
 > = {
   Eco: {
-    maxSpeed: 120,
+    maxSpeed: 45,
     accelRate: 1.2,
     brakeRate: 4.0,
     strongRegenBrakeRate: 5.0,
   },
   City: {
-    maxSpeed: 140,
+    maxSpeed: 75,
     accelRate: 2.0,
     brakeRate: 5.0,
     strongRegenBrakeRate: 6.0,
   },
   Sports: {
-    maxSpeed: 180,
+    maxSpeed: 120,
     accelRate: 3.5,
     brakeRate: 6.0,
     strongRegenBrakeRate: 7.0,
