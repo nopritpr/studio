@@ -32,6 +32,7 @@ export function useVehicleSimulation() {
     regenActive: false,
     regenPower: 0,
   });
+  const requestRef = useRef<number>();
 
   const callAI = useCallback(async () => {
     if (typeof state.batterySOC !== 'number' || state.batterySOC === null) {
@@ -287,7 +288,7 @@ export function useVehicleSimulation() {
             equivalentFullCycles: prevState.equivalentFullCycles + Math.abs((prevState.batterySOC - newSOC) / 100),
         };
     });
-    requestAnimationFrame(updateVehicleState);
+    requestRef.current = requestAnimationFrame(updateVehicleState);
   }, []);
 
   useEffect(() => {
@@ -314,13 +315,15 @@ export function useVehicleSimulation() {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
-    const simId = requestAnimationFrame(updateVehicleState);
+    requestRef.current = requestAnimationFrame(updateVehicleState);
     const aiTimer = setInterval(callAI, 10000);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
-      cancelAnimationFrame(simId);
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
       clearInterval(aiTimer);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
