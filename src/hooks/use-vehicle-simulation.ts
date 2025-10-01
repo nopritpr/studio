@@ -33,14 +33,18 @@ export function useVehicleSimulation() {
     regenPower: 0,
   });
   const requestRef = useRef<number>();
+  const stateRef = useRef<VehicleState>(state);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   const callAI = useCallback(async () => {
-    if (typeof state.batterySOC !== 'number' || state.batterySOC === null) {
+    const currentState = stateRef.current;
+    if (typeof currentState.batterySOC !== 'number' || currentState.batterySOC === null) {
       return;
     }
     try {
-      const currentState = { ...state };
-
       const [rec, style, range, soh] = await Promise.all([
         getDrivingRecommendation({
           drivingStyle: currentState.drivingStyle,
@@ -90,7 +94,7 @@ export function useVehicleSimulation() {
     } catch (error) {
       console.error('AI Flow error:', error);
     }
-  }, [state]);
+  }, []);
 
   const setDriveMode = (mode: DriveMode) => {
     setState({ driveMode: mode });
@@ -105,7 +109,8 @@ export function useVehicleSimulation() {
   }
   
   const toggleCharging = () => {
-    if (state.speed > 0 && !state.isCharging) {
+    const currentState = stateRef.current;
+    if (currentState.speed > 0 && !currentState.isCharging) {
         toast({
           title: "Cannot start charging",
           description: "Vehicle must be stationary to start charging.",
@@ -114,9 +119,9 @@ export function useVehicleSimulation() {
         return;
     }
 
-    const isCharging = !state.isCharging;
+    const isCharging = !currentState.isCharging;
     const now = Date.now();
-    let newLogs = [...state.chargingLogs];
+    let newLogs = [...currentState.chargingLogs];
 
     if (isCharging) {
       // Start charging
@@ -124,18 +129,18 @@ export function useVehicleSimulation() {
         isCharging,
         lastChargeLog: {
           startTime: now,
-          startSOC: state.batterySOC,
+          startSOC: currentState.batterySOC,
         }
       });
-    } else if (state.lastChargeLog) {
+    } else if (currentState.lastChargeLog) {
       // Stop charging
-      const log = state.lastChargeLog;
-      const energyAdded = (state.batterySOC - log.startSOC) / 100 * state.packNominalCapacity_kWh;
+      const log = currentState.lastChargeLog;
+      const energyAdded = (currentState.batterySOC - log.startSOC) / 100 * currentState.packNominalCapacity_kWh;
       const newLog: ChargingLog = {
         startTime: log.startTime,
         endTime: now,
         startSOC: log.startSOC,
-        endSOC: state.batterySOC,
+        endSOC: currentState.batterySOC,
         energyAdded: Math.max(0, energyAdded),
       };
       newLogs.push(newLog);
@@ -147,36 +152,39 @@ export function useVehicleSimulation() {
     }
   };
   const resetTrip = () => {
-    if (state.activeTrip === 'A') setState({ tripA: 0 });
+    const currentState = stateRef.current;
+    if (currentState.activeTrip === 'A') setState({ tripA: 0 });
     else setState({ tripB: 0 });
   };
   const setActiveTrip = (trip: 'A' | 'B') => setState({ activeTrip: trip });
-  const togglePerfMode = () => setState({ stabilizerEnabled: !state.stabilizerEnabled });
+  const togglePerfMode = () => setState({ stabilizerEnabled: !stateRef.current.stabilizerEnabled });
 
   const switchProfile = (profileName: string) => {
-    if (state.profiles[profileName]) {
+    const currentState = stateRef.current;
+    if (currentState.profiles[profileName]) {
         setState({ 
             activeProfile: profileName,
-            ...state.profiles[profileName]
+            ...currentState.profiles[profileName]
         });
         toast({ title: `Switched to ${profileName}'s profile.`});
     }
   };
 
   const addProfile = (profileName: string) => {
-    if (profileName && !state.profiles[profileName]) {
-        const newProfiles = { ...state.profiles, [profileName]: { driveMode: 'Eco', acTemp: 22 } as Profile};
+    const currentState = stateRef.current;
+    if (profileName && !currentState.profiles[profileName]) {
+        const newProfiles = { ...currentState.profiles, [profileName]: { driveMode: 'Eco', acTemp: 22 } as Profile};
         setState({ profiles: newProfiles });
         toast({ title: `Profile ${profileName} added.`});
     }
   }
 
   const updateVehicleState = useCallback(() => {
-    setState(prevState => {
-        const now = Date.now();
-        const timeDelta = (now - prevState.lastUpdate) / 1000;
-        if (timeDelta <= 0) return prevState;
+    const prevState = stateRef.current;
+    const now = Date.now();
+    const timeDelta = (now - prevState.lastUpdate) / 1000;
 
+    if (timeDelta > 0) {
         let newState: Partial<VehicleState> = { lastUpdate: now };
         const physics = physicsRef.current;
         const modeSettings = MODE_SETTINGS[prevState.driveMode];
@@ -274,10 +282,8 @@ export function useVehicleSimulation() {
         estimatedRange = remainingEnergy_kWh / (consumption / 1000);
         newState.range = Math.max(0, isFinite(estimatedRange) ? estimatedRange : 0);
 
-        const finalState = {...prevState, ...newState};
-
-        return {
-            ...finalState,
+        const finalStateChanges: Partial<VehicleState> = {
+            ...newState,
             displaySpeed: prevState.displaySpeed + (newSpeed - prevState.displaySpeed) * 0.1,
             speedHistory: [newSpeed, ...prevState.speedHistory].slice(0, 50),
             accelerationHistory: [physics.acceleration, ...prevState.accelerationHistory].slice(0, 50),
@@ -287,7 +293,9 @@ export function useVehicleSimulation() {
             packSOH: Math.max(70, prevState.packSOH - Math.abs(socChange * 0.00001)),
             equivalentFullCycles: prevState.equivalentFullCycles + Math.abs((prevState.batterySOC - newSOC) / 100),
         };
-    });
+        
+        setState(finalStateChanges);
+    }
     requestRef.current = requestAnimationFrame(updateVehicleState);
   }, []);
 
