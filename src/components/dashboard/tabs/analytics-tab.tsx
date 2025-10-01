@@ -47,8 +47,8 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
     const savings = state.odometer * (8 - 2);
 
     return (
-        <div className="h-full grid grid-cols-1 md:grid-cols-3 grid-rows-4 md:grid-rows-2 gap-4 min-h-0">
-            <Card className="col-span-1 row-span-2 flex flex-col">
+        <div className="h-full grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4 min-h-0">
+            <Card className="md:col-span-1 md:row-span-2 flex flex-col">
                 <CardHeader>
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><BatteryCharging className="w-4 h-4"/>Charging Log</CardTitle>
                 </CardHeader>
@@ -70,17 +70,17 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                 </CardContent>
             </Card>
 
-            <Card className="col-span-1 row-span-1 flex flex-col">
+            <Card className="md:col-span-1 flex flex-col">
                 <CardHeader>
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><Zap className="w-4 h-4"/>Charging Habit</CardTitle>
                     <p className="text-xs text-muted-foreground -mt-2">Clustering model analysis.</p>
                 </CardHeader>
-                <CardContent className="flex-grow flex items-center justify-center min-h-0 min-w-0">
+                <CardContent className="flex-grow flex items-center justify-center min-h-0">
                     <ChargingHabitChart data={analyzeChargingPatterns()} />
                 </CardContent>
             </Card>
 
-            <div className="col-span-1 row-span-1 flex flex-col gap-4">
+            <div className="md:col-span-1 flex flex-col gap-4">
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-sm font-headline flex items-center gap-2"><span className="font-bold text-base">₹</span>Cost Savings</CardTitle>
@@ -90,7 +90,7 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                         <p className="text-xs text-muted-foreground">vs. ICE car</p>
                     </CardContent>
                 </Card>
-                <Card>
+                 <Card className="flex-1">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-headline">Fatigue Monitor</CardTitle>
                         <p className="text-xs text-muted-foreground -mt-2">LSTM Anomaly detection.</p>
@@ -101,7 +101,7 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                 </Card>
             </div>
             
-            <Card className="col-span-1 md:col-span-2 row-span-1 flex flex-col">
+            <Card className="md:col-span-2 flex flex-col">
                 <CardHeader className="p-4">
                     <h4 className="font-semibold text-sm font-headline flex items-center gap-2 mb-1"><TrendingUp className="w-4 h-4" />Dynamic Range Factors</h4>
                     <p className="text-xs text-muted-foreground -mt-2">Regression model analyzing range impact.</p>
