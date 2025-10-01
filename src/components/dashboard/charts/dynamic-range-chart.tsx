@@ -45,7 +45,7 @@ export default function DynamicRangeChart({ state }: DynamicRangeChartProps) {
       <BarChart
         data={data}
         layout="vertical"
-        margin={{ left: 10, right: 30 }}
+        margin={{ left: 10, right: 50 }}
         stackOffset="sign"
       >
         <CartesianGrid horizontal={false} />
