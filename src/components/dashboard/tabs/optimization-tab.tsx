@@ -6,7 +6,8 @@ import Image from "next/image";
 import EcoScoreGauge from "../charts/eco-score-gauge";
 import SohForecastChart from "../charts/soh-forecast-chart";
 import type { VehicleState } from "@/lib/types";
-import { Leaf, User, BrainCircuit, BarChart, ChevronRight, HeartPulse } from "lucide-react";
+import { Leaf, User, BrainCircuit, BarChart, HeartPulse } from "lucide-react";
+import { useMemo } from 'react';
 
 interface OptimizationTabProps {
     state: VehicleState;
@@ -30,8 +31,8 @@ const InsightItem = ({ icon, title, description, type }: { icon: React.ReactNode
 
 export default function OptimizationTab({ state, onProfileSwitchClick, onStabilizerToggle }: OptimizationTabProps) {
 
-  const insights = [
-      ...(state.drivingRecommendation ? [{
+  const insights = useMemo(() => [
+      ...(state.drivingRecommendation && state.drivingRecommendation !== 'Start driving to get recommendations.' ? [{
           icon: '💡',
           title: 'Live Tip',
           description: state.drivingRecommendation,
@@ -43,7 +44,7 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
           description: rec,
           type: 'info'
       }))
-  ];
+  ], [state.drivingRecommendation, state.drivingStyleRecommendations]);
 
 
   return (
@@ -63,7 +64,7 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
                 </CardHeader>
                 <CardContent className="text-center">
                     <p className="text-5xl font-bold text-green-400 font-headline">
-                        {((state.odometer * (120 - 50)) / 1000).toFixed(1)}
+                        {((state.odometer || 0) * (120 - 50) / 1000).toFixed(1)}
                     </p>
                     <p className="text-xs text-muted-foreground">kg CO₂ saved vs ICE</p>
                 </CardContent>
@@ -87,7 +88,13 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><HeartPulse className="w-4 h-4"/>Battery Health (SOH) Forecast</CardTitle>
                 </CardHeader>
                 <CardContent className="flex-1 min-h-0">
-                    <SohForecastChart data={state.sohForecast} />
+                   {state.sohForecast && state.sohForecast.length > 0 ? (
+                        <SohForecastChart data={state.sohForecast} />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <p className="text-sm text-muted-foreground">Drive further to generate forecast data.</p>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
@@ -96,10 +103,10 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><BrainCircuit className="w-4 h-4"/>AI Insights & Controls</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="text-xs grid grid-cols-1 gap-2 mb-4 h-32 overflow-y-auto">
+                    <div className="text-xs grid grid-cols-1 gap-2 mb-4 h-32 overflow-y-auto pr-2">
                         {insights.length > 0 ? insights.map((insight, i) => (
                            <InsightItem key={i} {...insight} />
-                        )) : <p className="text-muted-foreground text-center self-center">No insights available.</p> }
+                        )) : <div className="h-full flex items-center justify-center"><p className="text-muted-foreground text-center">No insights available. Drive to generate tips.</p></div> }
                     </div>
                     <div className="flex items-center justify-between">
                         <label htmlFor="stabilizer-toggle" className="text-sm">Prediction Stabilizer</label>

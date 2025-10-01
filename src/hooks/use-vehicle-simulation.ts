@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useReducer, useRef } from 'react';
-import type { VehicleState, VehiclePhysics, DriveMode, Profile, ChargingLog } from '@/lib/types';
+import type { VehicleState, VehiclePhysics, DriveMode, Profile, ChargingLog, SohHistoryEntry } from '@/lib/types';
 import { defaultState, EV_CONSTANTS, MODE_SETTINGS } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 import { getDrivingRecommendation } from '@/ai/flows/adaptive-driving-recommendations';
@@ -35,6 +35,7 @@ export function useVehicleSimulation() {
   const stateRef = useRef<VehicleState>(state);
   const lastAiCall = useRef(0);
   const lastFatigueCheck = useRef(0);
+  const lastSohHistoryUpdateOdometer = useRef(0);
 
   useEffect(() => {
     stateRef.current = state;
@@ -115,7 +116,12 @@ export function useVehicleSimulation() {
           currentBatteryLevel: currentState.batterySOC,
         }),
         forecastSoh({
-          historicalData: currentState.sohHistory.map(h => ({...h, ecoPercent: 0, cityPercent: 0, sportsPercent: 0})),
+          historicalData: currentState.sohHistory.length > 0 ? currentState.sohHistory : [{
+              odometer: currentState.odometer,
+              cycleCount: currentState.equivalentFullCycles,
+              avgBatteryTemp: currentState.batteryTemp,
+              ecoPercent: 100, cityPercent: 0, sportsPercent: 0
+          }],
         }),
       ]);
 
@@ -225,6 +231,23 @@ export function useVehicleSimulation() {
     }
   }
 
+  const deleteProfile = (profileName: string) => {
+    const currentState = stateRef.current;
+    if (profileName && currentState.profiles[profileName] && Object.keys(currentState.profiles).length > 1) {
+        const newProfiles = { ...currentState.profiles };
+        delete newProfiles[profileName];
+        
+        let nextProfile = currentState.activeProfile;
+        if (currentState.activeProfile === profileName) {
+            nextProfile = Object.keys(newProfiles)[0];
+        }
+
+        setState({ profiles: newProfiles });
+        switchProfile(nextProfile);
+        toast({ title: `Profile ${profileName} deleted.`});
+    }
+  };
+
   const updateVehicleState = useCallback(() => {
     const prevState = stateRef.current;
     const now = Date.now();
@@ -282,8 +305,11 @@ export function useVehicleSimulation() {
     const speed_mps = newSpeed / 3.6;
     const aeroDragForce = 0.5 * EV_CONSTANTS.airDensity * EV_CONSTANTS.frontalArea_m2 * EV_CONSTANTS.dragCoeff * Math.pow(speed_mps, 2);
     const rollingResistanceForce = EV_CONSTANTS.rollingResistanceCoeff * totalWeight_kg * EV_CONSTANTS.gravity;
-    const mechanicalPower_kW = ((aeroDragForce + rollingResistanceForce) * speed_mps) / 1000;
+    
+    // Power to overcome resistance forces
+    const resistancePower_kW = (aeroDragForce + rollingResistanceForce) * speed_mps / 1000;
 
+    // Power for acceleration
     const acceleration_mps2 = physics.acceleration / 3.6;
     const accelerationPower_kW = (totalWeight_kg * acceleration_mps2 * speed_mps) / 1000;
 
@@ -306,8 +332,9 @@ export function useVehicleSimulation() {
             totalPower_kW = -physics.regenPower;
         } else {
             physics.regenPower = 0;
-            const inertialPower = Math.max(0, accelerationPower_kW); // Only consume power when accelerating, not braking
-            totalPower_kW = (mechanicalPower_kW + inertialPower) / modeSettings.powerFactor + acPower_kW + accessoryPower_kW;
+            const inertialPower = Math.max(0, accelerationPower_kW);
+            const mechanicalPower_kW = resistancePower_kW + inertialPower;
+            totalPower_kW = (mechanicalPower_kW / modeSettings.powerFactor) + acPower_kW + accessoryPower_kW;
         }
 
         const energyConsumed_kWh = totalPower_kW * (timeDelta / 3600);
@@ -322,31 +349,37 @@ export function useVehicleSimulation() {
     newState.power = totalPower_kW;
 
     // --- Start: Stable Wh/km and Range Calculation ---
-    let currentWhPerKm = prevState.recentWhPerKm;
+    let currentWhPerKm;
     if (newSpeed > 1 && totalPower_kW > 0) {
         currentWhPerKm = (totalPower_kW * 1000) / newSpeed;
+    } else {
+        currentWhPerKm = prevState.recentWhPerKm;
     }
-
-    const windowSize = 50; // Average over ~50 ticks
-    const newWindow = [currentWhPerKm, ...prevState.recentWhPerKmWindow].slice(0, windowSize);
-    const smoothedWhPerKm = newWindow.reduce((acc, val) => acc + val, 0) / newWindow.length;
-    newState.recentWhPerKmWindow = newWindow;
-
+    
+    const smoothingFactor = 0.05; // Lower factor = more smoothing
+    const smoothedWhPerKm = (prevState.recentWhPerKm * (1 - smoothingFactor)) + (currentWhPerKm * smoothingFactor);
     newState.recentWhPerKm = isFinite(smoothedWhPerKm) ? Math.max(50, smoothedWhPerKm) : modeSettings.baseConsumption;
 
     const remainingEnergy_kWh = (newSOC / 100) * (prevState.packNominalCapacity_kWh * prevState.packUsableFraction) * (prevState.packSOH / 100);
-
-    const acPenalty = prevState.acOn ? 1 - (acPower_kW / 100) : 1;
-    const tempPenalty = 1 - (Math.abs(22 - prevState.outsideTemp) / 150); // Penalty for extreme temps
-    const weightPenalty = 1 - ((passengerWeight + goodsWeight) / 100000); // Subtle weight penalty
-
-    const dynamicConsumption = newState.recentWhPerKm / (acPenalty * tempPenalty * weightPenalty);
-
-    const estimatedRange = remainingEnergy_kWh / (dynamicConsumption / 1000);
-
+    const estimatedRange = remainingEnergy_kWh / (newState.recentWhPerKm / 1000);
     newState.range = Math.max(0, isFinite(estimatedRange) ? estimatedRange : prevState.range);
     // --- End: Stable Wh/km and Range Calculation ---
 
+    // --- SOH History Update ---
+    newState.sohHistory = prevState.sohHistory;
+    if (newState.odometer > lastSohHistoryUpdateOdometer.current + 500) {
+      lastSohHistoryUpdateOdometer.current = newState.odometer;
+      const newSohEntry: SohHistoryEntry = {
+        odometer: newState.odometer,
+        cycleCount: prevState.equivalentFullCycles + Math.abs((prevState.batterySOC - newSOC) / 100),
+        avgBatteryTemp: prevState.batteryTemp,
+        soh: prevState.packSOH,
+        ecoPercent: 100, // Placeholder
+        cityPercent: 0,
+        sportsPercent: 0
+      };
+       newState.sohHistory = [...prevState.sohHistory, newSohEntry].slice(-20); // Keep last 20 entries
+    }
 
     const harshAccelThreshold = 15;
     const harshBrakeThreshold = -12;
@@ -433,6 +466,7 @@ export function useVehicleSimulation() {
     togglePerfMode,
     switchProfile,
     addProfile,
+    deleteProfile,
     setPassengers,
     toggleGoodsInBoot,
   };

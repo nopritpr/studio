@@ -29,7 +29,7 @@ const SohForecastInputSchema = z.object({
         .number()
         .describe('Percentage of driving in Sports mode (0-100).'),
     })
-  ).describe('Historical battery data for SOH forecasting.'),
+  ).min(1).describe('Historical battery data for SOH forecasting.'),
 });
 export type SohForecastInput = z.infer<typeof SohForecastInputSchema>;
 
@@ -58,9 +58,11 @@ Historical Data:
   - Odometer: {{odometer}} km, Cycle Count: {{cycleCount}}, Avg. Temp: {{avgBatteryTemp}} °C, Eco: {{ecoPercent}}%, City: {{cityPercent}}%, Sports: {{sportsPercent}}%
 {{/each}}
 
-Provide the SOH forecast for the next 10 odometer readings, incrementing by 20,000 kilometers each time.
+Based on this data, project the SOH decline. Assume a linear degradation based on odometer reading and cycle count as primary factors. High temperatures can accelerate degradation.
 
-Ensure the output is a JSON array of objects, each containing the odometer reading and the predicted SOH percentage.
+Provide the SOH forecast for the next 10 odometer readings, starting from the last odometer reading in the historical data and incrementing by 20,000 kilometers each time. The first value should be the predicted SOH at the next 20,000 km interval.
+
+Ensure the output is a JSON array of objects, each containing the 'odometer' reading and the predicted 'soh' percentage.
 `,
 });
 
@@ -71,6 +73,10 @@ const sohForecastFlow = ai.defineFlow(
     outputSchema: SohForecastOutputSchema,
   },
   async input => {
+    // Ensure there's enough data to create a meaningful forecast.
+    if (input.historicalData.length < 1) {
+      return [];
+    }
     const {output} = await prompt(input);
     return output!;
   }

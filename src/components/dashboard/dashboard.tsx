@@ -24,6 +24,7 @@ export default function Dashboard() {
     setActiveTrip,
     switchProfile,
     addProfile,
+    deleteProfile,
     setPassengers,
     toggleGoodsInBoot,
   } = useVehicleSimulation();
@@ -93,6 +94,7 @@ export default function Dashboard() {
         activeProfile={state.activeProfile}
         onSwitchProfile={switchProfile}
         onAddProfile={addProfile}
+        onDeleteProfile={deleteProfile}
       />
     </div>
   );

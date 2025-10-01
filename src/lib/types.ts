@@ -17,8 +17,12 @@ export interface SohHistoryEntry {
   odometer: number;
   cycleCount: number;
   avgBatteryTemp: number;
-  soh: number;
+  soh?: number; // SOH is now optional as it might not be present in every entry
+  ecoPercent: number;
+  cityPercent: number;
+  sportsPercent: number;
 }
+
 
 export type VehiclePhysics = {
   acceleration: number;
