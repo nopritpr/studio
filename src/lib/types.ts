@@ -104,6 +104,7 @@ export interface VehicleState {
   tripB: number;
   activeTrip: 'A' | 'B';
   batterySOC: number;
+  range: number;
   driveMode: DriveMode;
   acOn: boolean;
   acTemp: number;

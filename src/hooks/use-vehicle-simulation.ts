@@ -167,8 +167,8 @@ export function useVehicleSimulation() {
             physics.regenPower = 0;
             totalPower_kW = (motorPower_kW / modeSettings.powerFactor) / EV_CONSTANTS.drivetrainEfficiency + acPower_kW + accessoryPower_kW;
         }
-        if (newSpeed === 0) { // Apply base accessory draw when idle
-          totalPower_kW = EV_CONSTANTS.accessoryBase_kW;
+        if (newSpeed < 1) { // Apply base accessory draw when idle, but also include AC
+          totalPower_kW = acPower_kW + accessoryPower_kW;
         }
 
         const energyConsumed_kWh = totalPower_kW * (timeDelta / 3600);
@@ -179,6 +179,14 @@ export function useVehicleSimulation() {
     newSOC = Math.max(0, Math.min(100, newSOC));
     const socChange = newSOC - state.batterySOC;
     newState.batterySOC = newSOC;
+    
+    // --- Range Calculation ---
+    const remainingEnergy_kWh = (newSOC / 100) * (state.packNominalCapacity_kWh * state.packUsableFraction) * (state.packSOH / 100);
+    const currentConsumption_kW = Math.max(EV_CONSTANTS.accessoryBase_kW, totalPower_kW);
+    const consumption_kWh_per_km = currentConsumption_kW > 0 && newSpeed > 0 ? (currentConsumption_kW / newSpeed) : (modeSettings.baseConsumption / 1000);
+    const estimatedRange = remainingEnergy_kWh / consumption_kWh_per_km;
+    newState.range = Math.max(0, isFinite(estimatedRange) ? estimatedRange : state.range);
+
 
     // --- History & Other Metrics ---
     const newSpeedHistory = [newSpeed, ...state.speedHistory].slice(0, 50);

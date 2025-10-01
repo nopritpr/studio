@@ -89,13 +89,6 @@ export default function DashboardTab({
     toggleCharging();
   };
 
-  const getRange = () => {
-    const remainingEnergy_kWh = (state.batterySOC / 100) * (state.packNominalCapacity_kWh * state.packUsableFraction) * (state.packSOH / 100);
-    const consumption_kWh_per_km = state.recentWhPerKm > 0 ? state.recentWhPerKm / 1000 : MODE_SETTINGS.Eco.baseConsumption / 1000;
-    const range = remainingEnergy_kWh / consumption_kWh_per_km;
-    return Math.max(0, range);
-  }
-
   return (
     <div className="h-full grid grid-cols-12 gap-4 min-h-0">
       {/* Left Column */}
@@ -230,7 +223,7 @@ export default function DashboardTab({
           <div className="flex justify-between items-end mt-1 text-base font-semibold">
               <span className="text-lg">{state.batterySOC.toFixed(1)}%</span>
               <div className="text-right">
-                  <span className="font-semibold text-lg">{Math.round(getRange())} km</span>
+                  <span className="font-semibold text-lg">{Math.round(state.range)} km</span>
                   <p className="text-xs text-primary font-normal" title="Based on driving style, temperature, and usage patterns">AI: {Math.round(state.predictedDynamicRange)} km</p>
               </div>
           </div>

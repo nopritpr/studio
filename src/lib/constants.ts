@@ -6,6 +6,7 @@ export const defaultState: VehicleState = {
   tripB: 0.0,
   activeTrip: 'A',
   batterySOC: 100.0,
+  range: 450,
   driveMode: 'Eco',
   acOn: false,
   acTemp: 22,
