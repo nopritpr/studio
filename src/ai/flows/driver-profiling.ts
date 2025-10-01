@@ -31,6 +31,7 @@ export async function analyzeDrivingStyle(input: AnalyzeDrivingStyleInput): Prom
 
 const prompt = ai.definePrompt({
   name: 'analyzeDrivingStylePrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: {schema: AnalyzeDrivingStyleInputSchema},
   output: {schema: AnalyzeDrivingStyleOutputSchema},
   prompt: `You are an expert driving coach who analyzes driving data and provides personalized recommendations to improve driving safety and efficiency.
