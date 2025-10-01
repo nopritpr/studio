@@ -165,12 +165,10 @@ export function useVehicleSimulation() {
         } else {
             motorPower_kW = Math.max(0, motorPower_kW); // Power can't be negative if not regenerating
             physics.regenPower = 0;
-            totalPower_kW = (motorPower_kW / modeSettings.powerFactor) / EV_CONSTANTS.drivetrainEfficiency + acPower_kW + accessoryPower_kW;
+            let drivingPower = (motorPower_kW / modeSettings.powerFactor) / EV_CONSTANTS.drivetrainEfficiency;
+            totalPower_kW = drivingPower + acPower_kW + accessoryPower_kW;
         }
         
-        totalPower_kW = Math.max(totalPower_kW, acPower_kW + accessoryPower_kW);
-
-
         const energyConsumed_kWh = totalPower_kW * (timeDelta / 3600);
         const socChange_percent = (energyConsumed_kWh / state.packNominalCapacity_kWh) * 100;
         newSOC -= socChange_percent;
@@ -188,14 +186,14 @@ export function useVehicleSimulation() {
     
     const powerForConsumption = Math.max(0, totalPower_kW);
     const currentWhPerKm = newSpeed > 1 ? (powerForConsumption * 1000) / newSpeed : 0;
-    const newWhPerKm = (state.recentWhPerKm * 0.95) + (currentWhPerKm * 0.05);
     
-    const recentWhPerKmWindow = [isFinite(newWhPerKm) && newWhPerKm > 20 ? newWhPerKm : state.recentWhPerKm, ...state.recentWhPerKmWindow].slice(0,100);
-    const recentWhPerKm = recentWhPerKmWindow.reduce((a, b) => a + b, 0) / recentWhPerKmWindow.length;
-    
+    // Ensure Wh/km doesn't become excessively low or high
+    const smoothedWhPerKm = state.recentWhPerKm > 0 ? (state.recentWhPerKm * 49 + (currentWhPerKm > 0 ? currentWhPerKm : state.recentWhPerKm)) / 50 : modeSettings.baseConsumption;
+    const newRecentWhPerKm = Math.max(50, Math.min(500, smoothedWhPerKm));
+
     // --- Range Calculation ---
     const remainingEnergy_kWh = (newSOC / 100) * (state.packNominalCapacity_kWh * state.packUsableFraction) * (state.packSOH / 100);
-    const consumption_kWh_per_km = recentWhPerKm > 0 ? recentWhPerKm / 1000 : modeSettings.baseConsumption / 1000;
+    const consumption_kWh_per_km = newRecentWhPerKm / 1000;
     const estimatedRange = remainingEnergy_kWh / consumption_kWh_per_km;
     newState.range = Math.max(0, isFinite(estimatedRange) ? estimatedRange : state.range);
 
@@ -209,8 +207,7 @@ export function useVehicleSimulation() {
         accelerationHistory: newAccelerationHistory,
         powerHistory: newPowerHistory,
         driveModeHistory: newDriveModeHistory,
-        recentWhPerKm: isFinite(recentWhPerKm) && recentWhPerKm > 1 ? recentWhPerKm: modeSettings.baseConsumption,
-        recentWhPerKmWindow,
+        recentWhPerKm: newRecentWhPerKm,
         ecoScore: state.ecoScore * 0.999 + (100 - Math.abs(physics.acceleration) * 2 - (totalPower_kW > 0 ? totalPower_kW / 10 : 0)) * 0.001,
         packSOH: Math.max(70, state.packSOH - Math.abs(socChange * 0.00001)),
         equivalentFullCycles: state.equivalentFullCycles + Math.abs((state.batterySOC - newSOC) / 100)
@@ -261,7 +258,27 @@ export function useVehicleSimulation() {
   };
   
   const toggleAC = () => {
-    setState(prevState => ({ acOn: !prevState.acOn }));
+      const isAcOn = !state.acOn;
+      const consumption_kWh_per_km = state.recentWhPerKm / 1000;
+      const remainingEnergy_kWh = (state.batterySOC / 100) * state.packUsableFraction * state.batteryCapacity_kWh;
+      const acPowerDraw_kW = 1.0; // Simplified average A/C power draw
+      const rangeLostPerHour_km = acPowerDraw_kW / consumption_kWh_per_km;
+      
+      let currentRange = state.range;
+
+      if (isAcOn) {
+          // Simplified: Assume AC on for an hour, what is the impact? 
+          // A better way is to adjust base consumption, which is what we do now in the main loop.
+          // This immediate adjustment is for UX feedback.
+          const rangeDrop = state.range * 0.10; // 10% drop
+          currentRange = Math.max(0, state.range - rangeDrop);
+      } else {
+          // Re-calculate based on no AC. The main loop will handle this, but we can give an instant boost.
+          const rangeGain = state.range / 0.90 - state.range;
+          currentRange = state.range + rangeGain;
+      }
+
+      setState(prevState => ({ acOn: !prevState.acOn, range: currentRange }));
   };
 
   const setAcTemp = (temp: number) => setState({ acTemp: temp });
