@@ -45,7 +45,7 @@ export const defaultState: VehicleState = {
   thermalThrottleFactor: 1.0,
   regenLimitFactor: 1.0,
   recentWhPerKm: 158,
-  recentWhPerKmWindow: Array(50).fill(158),
+  recentWhPerKmWindow: Array(50).fill(158.33),
   styleMetrics: {
     aggression: 0,
     smoothness: 1,
@@ -92,7 +92,9 @@ export const EV_CONSTANTS = {
   regenEfficiency: 0.7, // Realistic regen efficiency
   chargeRate_kW: 22,
   acPower_kW: 1.5,
-  baseConsumption: 158, // Wh/km at moderate speed, no AC, eco mode
+  baseConsumption: 158.33, // Wh/km for 450km range (71250Wh / 450km)
+  cityModeConsumptionFactor: 1.0714, // 169.64 / 158.33, for 420km range
+  sportsModeConsumptionFactor: 1.0714, // 169.64 / 158.33, for 420km range
   gentleRegenBrakeRate: 0.8, // m/s^2 for one-pedal driving feel
 };
 

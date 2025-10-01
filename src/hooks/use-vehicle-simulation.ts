@@ -290,17 +290,22 @@ export function useVehicleSimulation() {
     let consumptionWhPerKm = EV_CONSTANTS.baseConsumption;
     
     // Mode penalty
-    if (prevState.driveMode === 'City') consumptionWhPerKm *= 1.15;
-    if (prevState.driveMode === 'Sports') consumptionWhPerKm *= 1.30;
+    if (prevState.driveMode === 'City') consumptionWhPerKm *= EV_CONSTANTS.cityModeConsumptionFactor;
+    if (prevState.driveMode === 'Sports') consumptionWhPerKm *= EV_CONSTANTS.sportsModeConsumptionFactor;
     
     // Speed penalty - increases quadratically
     consumptionWhPerKm *= (1 + Math.pow(newSpeedKmh / 100, 2));
 
-    const weightPenalty = ((prevState.passengers - 1) * 0.05) + (prevState.goodsInBoot ? 0.08 : 0);
-    consumptionWhPerKm *= (1 + weightPenalty);
-
+    // A/C penalty
     if (prevState.acOn) {
-      consumptionWhPerKm *= 1.10;
+      consumptionWhPerKm *= 1.05;
+    }
+    // Passenger penalty
+    consumptionWhPerKm *= (1 + (prevState.passengers - 1) * 0.002);
+    
+    // Goods penalty
+    if (prevState.goodsInBoot) {
+        consumptionWhPerKm *= 1.02;
     }
     
     let energyRegeneratedWh = 0;
@@ -317,8 +322,8 @@ export function useVehicleSimulation() {
       const socChange = (netEnergyConsumedWh / (prevState.packNominalCapacity_kWh * 1000)) * 100;
       newSOC -= socChange;
     } else {
-       const chargeSocPerSecond = (EV_CONSTANTS.chargeRate_kW / prevState.packNominalCapacity_kWh) * 100 / 3600;
-       newSOC += chargeSocPerSecond * timeDelta;
+       // Charge at 1% per second
+       newSOC += 1 * timeDelta;
        newSOC = Math.min(100, newSOC);
     }
     newSOC = Math.max(0, newSOC);
