@@ -2,9 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ChargingHabitChart from "../charts/charging-habit-chart";
 import type { VehicleState } from "@/lib/types";
-import { Clock, Route, Zap, TrendingUp, HeartPulse, Thermometer, BatteryCharging, HelpCircle } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { BatteryCharging, Zap, TrendingUp } from "lucide-react";
 import DynamicRangeChart from "../charts/dynamic-range-chart";
 import FatigueMonitorGauge from "../charts/fatigue-monitor-gauge";
 
@@ -80,7 +78,7 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                 </CardContent>
             </Card>
 
-            <div className="md:col-span-1 flex flex-col gap-4">
+            <div className="flex flex-col gap-4">
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-sm font-headline flex items-center gap-2"><span className="font-bold text-base">₹</span>Cost Savings</CardTitle>
@@ -90,12 +88,12 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                         <p className="text-xs text-muted-foreground">vs. ICE car</p>
                     </CardContent>
                 </Card>
-                 <Card className="flex-1">
+                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-headline">Fatigue Monitor</CardTitle>
                         <p className="text-xs text-muted-foreground -mt-2">LSTM Anomaly detection.</p>
                     </CardHeader>
-                    <CardContent className="flex items-center justify-center">
+                    <CardContent className="flex items-center justify-center h-full">
                         <FatigueMonitorGauge fatigueLevel={state.fatigueLevel} />
                     </CardContent>
                 </Card>
