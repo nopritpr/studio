@@ -31,12 +31,12 @@ export async function analyzeDrivingStyle(input: AnalyzeDrivingStyleInput): Prom
 
 const prompt = ai.definePrompt({
   name: 'analyzeDrivingStylePrompt',
-  model: 'googleai/gemini-1.5-pro-preview-0514',
+  model: 'googleai/gemini-1.5-pro-latest',
   input: {schema: AnalyzeDrivingStyleInputSchema},
   output: {schema: AnalyzeDrivingStyleOutputSchema},
   prompt: `You are an expert driving coach who analyzes driving data and provides personalized recommendations to improve driving safety and efficiency.
 
-Analyze the following driving data to determine the driver's driving style and provide recommendations:
+Analyze the following driving data to determine the driver's driving style and provide 3-5 actionable recommendations to improve their driving habits:
 
 Speed History: {{{speedHistory}}}
 Acceleration History: {{{accelerationHistory}}}
