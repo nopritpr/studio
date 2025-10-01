@@ -296,13 +296,14 @@ export function useVehicleSimulation() {
     // Speed penalty - increases quadratically
     consumptionWhPerKm *= (1 + Math.pow(newSpeedKmh / 100, 2));
 
+    const energyConsumedWh = consumptionWhPerKm * distanceTraveledKm;
+    
     let energyRegeneratedWh = 0;
     if (currentAcceleration < -0.1 && newSpeedKmh > 1) { // Threshold for regen
-        const regenPower_W = Math.abs(currentAcceleration * newSpeedKmh * EV_CONSTANTS.regenEfficiency);
-        energyRegeneratedWh = (regenPower_W * timeDelta) / 3600;
+        const regenPower_kW = Math.abs(currentAcceleration * newSpeedKmh * EV_CONSTANTS.regenEfficiency / 1000);
+        energyRegeneratedWh = regenPower_kW * (timeDelta / 3600) * 1000;
     }
-
-    const energyConsumedWh = consumptionWhPerKm * distanceTraveledKm;
+    
     const netEnergyConsumedWh = energyConsumedWh - energyRegeneratedWh;
     
     let newSOC = prevState.batterySOC;
