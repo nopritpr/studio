@@ -89,7 +89,7 @@ export function useVehicleSimulation() {
             }
         }
     } catch (error) {
-        console.error('Fatigue Monitor AI Flow error:', error);
+      console.error('Fatigue Monitor AI Flow error:', error);
     }
   }, []);
 
@@ -346,8 +346,11 @@ export function useVehicleSimulation() {
     const usableEnergy_kWh = (newSOC / 100) * prevState.packUsableFraction * prevState.packNominalCapacity_kWh;
     
     let modeBaseConsumption = EV_CONSTANTS.baseConsumption;
-    if (prevState.driveMode === 'City') modeBaseConsumption = EV_CONSTANTS.cityModeConsumption;
-    if (prevState.driveMode === 'Sports') modeBaseConsumption = EV_CONSTANTS.sportsModeConsumption;
+    if (prevState.driveMode === 'City') {
+      modeBaseConsumption = EV_CONSTANTS.cityModeConsumption;
+    } else if (prevState.driveMode === 'Sports') {
+      modeBaseConsumption = EV_CONSTANTS.sportsModeConsumption;
+    }
 
     let penaltyFactor = 1;
     if (prevState.acOn) penaltyFactor *= 1.05;
@@ -454,5 +457,7 @@ export function useVehicleSimulation() {
     toggleGoodsInBoot,
   };
 }
+
+    
 
     

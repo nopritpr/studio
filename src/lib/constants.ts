@@ -106,7 +106,7 @@ export const EV_CONSTANTS = {
   acPower_kW: 1.5,
   baseConsumption: 158.33, // Wh/km for 450km range on 71.25kWh usable
   cityModeConsumption: 169.64, // Wh/km for 420km range
-  sportsModeConsumption: 169.64, // Wh/km for 420km range
+  sportsModeConsumption: 187.5, // Wh/km for 380km range
   gentleRegenBrakeRate: 0.8, // m/s^2 for one-pedal driving feel
 };
 
@@ -138,3 +138,5 @@ export const MODE_SETTINGS: Record<
     strongRegenBrakeRate: 7.0,
   },
 };
+
+    
