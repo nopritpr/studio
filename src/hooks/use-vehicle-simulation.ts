@@ -120,7 +120,7 @@ export function useVehicleSimulation() {
           historicalData: currentState.sohHistory.length > 0 ? currentState.sohHistory : [{
               odometer: currentState.odometer,
               cycleCount: currentState.equivalentFullCycles,
-              avgBatteryTemp: currentState.batteryTemp,
+              avgBatteryTemp: prevState.batteryTemp,
               ecoPercent: 100, cityPercent: 0, sportsPercent: 0
           }],
         }),
@@ -284,42 +284,39 @@ export function useVehicleSimulation() {
       }
     }
 
-
     const distanceTraveledKm = (newSpeedKmh / 3600) * timeDelta;
     
-    // --- Energy Consumption ---
+    // --- Corrected Energy Consumption ---
     const speed_ms = newSpeedKmh / 3.6;
+    const mass_kg_total = EV_CONSTANTS.mass_kg + (prevState.passengers * 70) + (prevState.goodsInBoot ? 50 : 0);
 
-    // Forces acting on the car
     const F_drag = 0.5 * EV_CONSTANTS.dragCoeff * EV_CONSTANTS.frontalArea_m2 * EV_CONSTANTS.airDensity * Math.pow(speed_ms, 2);
-    const F_rolling = EV_CONSTANTS.rollingResistanceCoeff * EV_CONSTANTS.mass_kg * EV_CONSTANTS.gravity;
-    const F_acceleration = EV_CONSTANTS.mass_kg * currentAcceleration;
+    const F_rolling = EV_CONSTANTS.rollingResistanceCoeff * mass_kg_total * EV_CONSTANTS.gravity;
+    const F_acceleration = mass_kg_total * currentAcceleration;
 
-    // Power calculation
+    const F_total = F_drag + F_rolling + F_acceleration;
+
     let power_motor_kW: number;
-    let F_motor: number;
-
-    if (currentAcceleration >= 0) {
-      // Motor is providing power to move
-      F_motor = F_acceleration + F_drag + F_rolling;
-      power_motor_kW = (F_motor * speed_ms) / (1000 * EV_CONSTANTS.drivetrainEfficiency);
+    if (F_total > 0) {
+        // Motor is providing power
+        power_motor_kW = (F_total * speed_ms) / (1000 * EV_CONSTANTS.drivetrainEfficiency);
     } else {
-      // Motor is regenerating power
-      F_motor = F_acceleration + F_drag + F_rolling; // F_motor will be negative here
-      power_motor_kW = (F_motor * speed_ms * EV_CONSTANTS.regenEfficiency) / 1000;
+        // Motor is regenerating (or coasting with less drag than regen)
+        power_motor_kW = (F_total * speed_ms * EV_CONSTANTS.regenEfficiency) / 1000;
     }
-
+    
     const ac_power_kW = prevState.acOn ? EV_CONSTANTS.acPower_kW : 0;
-    
     const netPower_kW = power_motor_kW + ac_power_kW;
-    
-    const energyChange_Wh = netPower_kW * 1000 * (timeDelta / 3600);
 
     let newSOC = prevState.batterySOC;
+
     if (prevState.isCharging) {
-       newSOC += (EV_CONSTANTS.chargeRate_kW * 1000 / (prevState.packNominalCapacity_kWh * 1000)) * 100 * timeDelta;
+      // Charging at 1% per second is very fast, let's make it more realistic
+      const chargePerSecond = 100 / (prevState.batteryCapacity_kWh * 3600 / EV_CONSTANTS.chargeRate_kW);
+       newSOC += chargePerSecond * timeDelta;
     } else {
-      const socChange = (energyChange_Wh / (prevState.packNominalCapacity_kWh * 1000)) * 100;
+      const energyChange_kWh = netPower_kW * (timeDelta / 3600);
+      const socChange = (energyChange_kWh / prevState.packNominalCapacity_kWh) * 100;
       newSOC -= socChange;
     }
     newSOC = Math.max(0, Math.min(100, newSOC));
