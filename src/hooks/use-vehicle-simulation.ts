@@ -71,9 +71,10 @@ export function useVehicleSimulation() {
     lastAiCall.current = Date.now();
 
     const currentState = stateRef.current;
-    if (typeof currentState.batterySOC !== 'number' || currentState.batterySOC === null) {
+    if (currentState.batterySOC === null || typeof currentState.batterySOC === 'undefined' || currentState.outsideTemp === null || typeof currentState.outsideTemp === 'undefined') {
       return;
     }
+
     try {
       const [rec, style, range, soh] = await Promise.all([
         getDrivingRecommendation({
@@ -269,7 +270,6 @@ export function useVehicleSimulation() {
     let newSpeedKmh = prevState.speed + currentAcceleration * timeDelta * 3.6;
     newSpeedKmh = Math.max(0, newSpeedKmh);
     
-    // Do not allow speed to exceed max for the mode unless we are already over speed
     if (newSpeedKmh > modeSettings.maxSpeed && currentAcceleration > 0) {
       if (prevState.speed <= modeSettings.maxSpeed) {
         newSpeedKmh = modeSettings.maxSpeed;
