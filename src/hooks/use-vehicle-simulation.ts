@@ -120,7 +120,7 @@ export function useVehicleSimulation() {
           historicalData: currentState.sohHistory.length > 0 ? currentState.sohHistory : [{
               odometer: currentState.odometer,
               cycleCount: currentState.equivalentFullCycles,
-              avgBatteryTemp: prevState.batteryTemp,
+              avgBatteryTemp: currentState.batteryTemp,
               ecoPercent: 100, cityPercent: 0, sportsPercent: 0
           }],
         }),
@@ -428,5 +428,7 @@ export function useVehicleSimulation() {
     toggleGoodsInBoot,
   };
 }
+
+    
 
     
