@@ -45,7 +45,7 @@ export async function getDrivingRecommendation(
 
 const adaptiveDrivingRecommendationsPrompt = ai.definePrompt({
   name: 'adaptiveDrivingRecommendationsPrompt',
-  model: 'googleai/gemini-pro',
+  model: 'googleai/gemini-1.5-pro-latest',
   input: {schema: DrivingRecommendationInputSchema},
   output: {schema: DrivingRecommendationOutputSchema},
   prompt: `You are an AI assistant that provides adaptive driving recommendations to electric vehicle (EV) drivers to improve energy efficiency and extend driving range.
