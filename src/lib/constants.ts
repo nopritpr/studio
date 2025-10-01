@@ -115,7 +115,7 @@ export const MODE_SETTINGS: Record<
     brakeRate: 15,
     regenEfficiency: 0.9,
     powerFactor: 1.2,
-    baseConsumption: 102.2, // 46000Wh / 450km
+    baseConsumption: 102,
     baseRange: 450,
   },
   City: {
@@ -125,7 +125,7 @@ export const MODE_SETTINGS: Record<
     brakeRate: 25,
     regenEfficiency: 0.8,
     powerFactor: 1.0,
-    baseConsumption: 109.5, // 46000Wh / 420km
+    baseConsumption: 110,
     baseRange: 420,
   },
   Sports: {
@@ -135,7 +135,9 @@ export const MODE_SETTINGS: Record<
     brakeRate: 35,
     regenEfficiency: 0.65,
     powerFactor: 0.8,
-    baseConsumption: 115, // 46000Wh / 400km
+    baseConsumption: 125,
     baseRange: 400,
   },
 };
+
+    
