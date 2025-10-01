@@ -43,7 +43,7 @@ export async function predictRange(input: PredictiveRangeInput): Promise<Predict
 
 const predictRangePrompt = ai.definePrompt({
   name: 'predictRangePrompt',
-  model: 'gemini-1.5-pro',
+  model: 'gemini-pro',
   input: { schema: PredictiveRangeInputSchema },
   output: { schema: PredictiveRangeOutputSchema },
   prompt: `You are an EV range estimation expert. Based on the provided data, estimate the remaining range.
