@@ -92,9 +92,9 @@ export const EV_CONSTANTS = {
   regenEfficiency: 0.7, // Realistic regen efficiency
   chargeRate_kW: 22,
   acPower_kW: 1.5,
-  baseConsumption: 158.33, // Wh/km for 450km range (71250Wh / 450km)
-  cityModeConsumptionFactor: 1.0714, // 169.64 / 158.33, for 420km range
-  sportsModeConsumptionFactor: 1.0714, // 169.64 / 158.33, for 420km range
+  baseConsumption: 140, // Wh/km
+  cityModeConsumptionFactor: 1.05,
+  sportsModeConsumptionFactor: 1.1,
   gentleRegenBrakeRate: 0.8, // m/s^2 for one-pedal driving feel
 };
 
