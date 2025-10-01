@@ -287,31 +287,35 @@ export function useVehicleSimulation() {
     const distanceTraveledKm = (newSpeedKmh / 3600) * timeDelta;
     
     // --- Energy Consumption ---
-    let consumptionWhPerKm = EV_CONSTANTS.baseConsumption;
-    
-    // Mode penalty
-    if (prevState.driveMode === 'City') consumptionWhPerKm *= EV_CONSTANTS.cityModeConsumptionFactor;
-    if (prevState.driveMode === 'Sports') consumptionWhPerKm *= EV_CONSTANTS.sportsModeConsumptionFactor;
-    
-    // Speed penalty - increases quadratically
-    consumptionWhPerKm *= (1 + Math.pow(newSpeedKmh / 100, 2));
+    const speed_ms = newSpeedKmh / 3.6;
+    const F_drag = 0.5 * EV_CONSTANTS.dragCoeff * EV_CONSTANTS.frontalArea_m2 * EV_CONSTANTS.airDensity * Math.pow(speed_ms, 2);
+    const F_rolling = EV_CONSTANTS.rollingResistanceCoeff * EV_CONSTANTS.mass_kg * EV_CONSTANTS.gravity;
+    const F_total = F_drag + F_rolling;
 
-    const energyConsumedWh = consumptionWhPerKm * distanceTraveledKm;
+    const power_motor_kW = (F_total * speed_ms) / (1000 * EV_CONSTANTS.drivetrainEfficiency);
+
+    let ac_power_kW = prevState.acOn ? EV_CONSTANTS.acPower_kW : 0;
     
-    let energyRegeneratedWh = 0;
-    if (currentAcceleration < -0.1 && newSpeedKmh > 1) { // Threshold for regen
-        const regenPower_kW = Math.abs(currentAcceleration * newSpeedKmh * EV_CONSTANTS.regenEfficiency / 1000);
-        energyRegeneratedWh = regenPower_kW * (timeDelta / 3600) * 1000;
+    let netPower_kW = 0;
+    let netEnergyConsumedWh = 0;
+
+    if (currentAcceleration > 0.05) { // Accelerating
+        netPower_kW = power_motor_kW + ac_power_kW;
+        netEnergyConsumedWh = netPower_kW * 1000 * (timeDelta / 3600);
+    } else if (currentAcceleration < -0.1) { // Braking / Regenerating
+        const regenPower_kW = Math.abs(currentAcceleration * newSpeedKmh * EV_CONSTANTS.regenEfficiency / 3000);
+        netPower_kW = -regenPower_kW + ac_power_kW;
+        netEnergyConsumedWh = netPower_kW * 1000 * (timeDelta / 3600);
+    } else { // Coasting
+        netPower_kW = power_motor_kW + ac_power_kW;
+        netEnergyConsumedWh = netPower_kW * 1000 * (timeDelta / 3600);
     }
-    
-    const netEnergyConsumedWh = energyConsumedWh - energyRegeneratedWh;
     
     let newSOC = prevState.batterySOC;
     if (!prevState.isCharging) {
       const socChange = (netEnergyConsumedWh / (prevState.packNominalCapacity_kWh * 1000)) * 100;
       newSOC -= socChange;
     } else {
-       // Charge at 1% per second
        newSOC += 1 * timeDelta;
     }
     newSOC = Math.max(0, Math.min(100, newSOC));
@@ -335,8 +339,8 @@ export function useVehicleSimulation() {
     const newRange = (usableEnergy_kWh * 1000) / finalConsumption_wh_km;
     
     const newOdometer = prevState.odometer + distanceTraveledKm;
-    
-    const instantPower = (netEnergyConsumedWh / 1000) / (timeDelta / 3600);
+
+    const instantPower = netPower_kW;
 
     const newState: Partial<VehicleState> = {
       speed: newSpeedKmh,
@@ -346,14 +350,14 @@ export function useVehicleSimulation() {
       power: instantPower,
       batterySOC: newSOC,
       range: newRange,
-      recentWhPerKm: finalConsumption_wh_km,
+      recentWhPerKm: instantPower > 0 && newSpeedKmh > 0 ? (instantPower * 1000) / newSpeedKmh : 0,
       lastUpdate: now,
       displaySpeed: prevState.displaySpeed + (newSpeedKmh - prevState.displaySpeed) * 0.1,
       speedHistory: [newSpeedKmh, ...prevState.speedHistory].slice(0, 100),
       accelerationHistory: [currentAcceleration, ...prevState.accelerationHistory].slice(0, 100),
       powerHistory: [instantPower, ...prevState.powerHistory].slice(0, 100),
       driveModeHistory: [prevState.driveMode, ...prevState.driveModeHistory].slice(0, 50) as DriveMode[],
-      ecoScore: prevState.ecoScore * 0.9995 + (100 - Math.abs(currentAcceleration) * 5 - (consumptionWhPerKm > 0 ? (consumptionWhPerKm / 10) : 0)) * 0.0005,
+      ecoScore: prevState.ecoScore * 0.9995 + (100 - Math.abs(currentAcceleration) * 5 - (finalConsumption_wh_km > 0 ? (finalConsumption_wh_km / 10) : 0)) * 0.0005,
       packSOH: Math.max(70, prevState.packSOH - Math.abs((prevState.batterySOC - newSOC) * 0.000001)),
       equivalentFullCycles: prevState.equivalentFullCycles + Math.abs((prevState.batterySOC - newSOC) / 100),
     };
@@ -425,3 +429,5 @@ export function useVehicleSimulation() {
     toggleGoodsInBoot,
   };
 }
+
+    
