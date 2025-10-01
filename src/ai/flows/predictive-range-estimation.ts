@@ -4,71 +4,83 @@
  * @fileOverview Estimates the remaining range of an EV based on driving style, climate control settings, and weather data.
  *
  * - predictRange - A function that takes driving behavior, climate control settings, and weather data as input, and estimates the remaining range.
- * - PredictiveRangeInput - The input type for the predictRange function.
- * - PredictiveRangeOutput - The return type for the predictRange function.
+ * - PredictiveRangeInput - The input type for the predictRange function
+ * - PredictiveRangeOutput - The return type for the predictRange function
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import {ai} from '@/ai/genkit';
+import {z} from 'genkit';
 
 const PredictiveRangeInputSchema = z.object({
-  drivingStyle: z.string().describe('The current driving style (e.g., Aggressive, Balanced, Eco).'),
+  drivingStyle: z
+    .string()
+    .describe(
+      "The user's current driving style (e.g., Eco, Balanced, Aggressive)."
+    ),
   climateControlSettings: z.object({
-    acUsage: z.number().describe('AC usage percentage (0-100).'),
-    temperatureSetting: z.number().describe('The cabin temperature setting in Celsius.'),
+    acUsage: z.number().describe('A/C usage percentage (0-100).'),
+    temperatureSetting: z.number().describe('Cabin temperature setting in Celsius.'),
   }),
   weatherData: z.object({
     temperature: z.number().describe('Outside temperature in Celsius.'),
-    precipitation: z.string().describe('Current precipitation (e.g., none, rain, snow).'),
+    precipitation: z.string().describe('Type of precipitation (e.g., none, rain, snow).'),
     windSpeed: z.number().describe('Wind speed in km/h.'),
   }),
-  historicalData: z.array(z.object({
-    speed: z.number(),
-    powerConsumption: z.number(),
-  })).describe('Recent historical driving data.'),
+  historicalData: z.array(
+    z.object({
+      speed: z.number().describe('Vehicle speed in km/h.'),
+      powerConsumption: z.number().describe('Power consumption in kW.'),
+    })
+  ).optional().describe('Historical speed and power consumption data.'),
   batteryCapacity: z.number().describe('Total battery capacity in kWh.'),
-  currentBatteryLevel: z.number().describe('Current battery level as a percentage (0-100).'),
+  currentBatteryLevel: z.number().describe('Current battery level in percentage.'),
 });
 export type PredictiveRangeInput = z.infer<typeof PredictiveRangeInputSchema>;
 
+
 const PredictiveRangeOutputSchema = z.object({
   estimatedRange: z.number().describe('The estimated remaining range in kilometers.'),
-  confidence: z.string().describe('Confidence level of the estimation (e.g., High, Medium, Low).'),
+  confidence: z.number().describe('Confidence level of the estimation (0-1).'),
 });
 export type PredictiveRangeOutput = z.infer<typeof PredictiveRangeOutputSchema>;
 
+
 export async function predictRange(input: PredictiveRangeInput): Promise<PredictiveRangeOutput> {
-  return predictRangeFlow(input);
+  return predictiveRangeFlow(input);
 }
 
-const predictRangePrompt = ai.definePrompt({
-  name: 'predictRangePrompt',
+
+const prompt = ai.definePrompt({
+  name: 'predictiveRangePrompt',
   model: 'googleai/gemini-1.5-pro-latest',
-  input: { schema: PredictiveRangeInputSchema },
-  output: { schema: PredictiveRangeOutputSchema },
-  prompt: `You are an EV range estimation expert. Based on the provided data, estimate the remaining range.
+  input: {schema: PredictiveRangeInputSchema},
+  output: {schema: PredictiveRangeOutputSchema},
+  prompt: `You are an expert AI system that predicts the remaining range of an electric vehicle based on various factors. Your goal is to provide a more accurate range estimation than the standard one.
 
-  Current State:
-  - Driving Style: {{drivingStyle}}
-  - Battery: {{currentBatteryLevel}}% of {{batteryCapacity}} kWh
-  - AC Usage: {{climateControlSettings.acUsage}}% at {{climateControlSettings.temperatureSetting}}°C
+Analyze the following data:
 
-  Environmental Conditions:
-  - Outside Temp: {{weatherData.temperature}}°C
-  - Weather: {{weatherData.precipitation}}
-  - Wind: {{weatherData.windSpeed}} km/h
+- Driving Style: {{drivingStyle}}
+- Climate Control: {{climateControlSettings.acUsage}}% AC, {{climateControlSettings.temperatureSetting}}°C
+- Weather: {{weatherData.temperature}}°C, {{weatherData.precipitation}}, {{weatherData.windSpeed}} km/h wind
+- Battery: {{currentBatteryLevel}}% of {{batteryCapacity}} kWh
 
-  Consider the impact of driving style, A/C usage (especially the difference between inside and outside temp), and weather on energy consumption. Agressive driving and heavy A/C use in extreme temperatures reduce range. Provide a realistic range estimate.`,
+Consider how these factors influence energy consumption:
+- Aggressive driving significantly reduces range.
+- High A/C usage, especially with large temperature differences, consumes more energy.
+- Cold weather reduces battery efficiency.
+- Headwinds and rain/snow increase energy consumption.
+
+Based on your analysis, provide a realistic estimated range and a confidence score for your prediction.`,
 });
 
-const predictRangeFlow = ai.defineFlow(
+const predictiveRangeFlow = ai.defineFlow(
   {
-    name: 'predictRangeFlow',
+    name: 'predictiveRangeFlow',
     inputSchema: PredictiveRangeInputSchema,
     outputSchema: PredictiveRangeOutputSchema,
   },
-  async (input) => {
-    const { output } = await predictRangePrompt(input);
+  async input => {
+    const {output} = await prompt(input);
     return output!;
   }
 );
