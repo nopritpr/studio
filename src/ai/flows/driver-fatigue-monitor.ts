@@ -33,7 +33,7 @@ export async function monitorDriverFatigue(input: DriverFatigueInput): Promise<D
 
 const prompt = ai.definePrompt({
   name: 'driverFatigueMonitorPrompt',
-  model: 'googleai/gemini-1.5-pro-latest',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: {schema: DriverFatigueInputSchema},
   output: {schema: DriverFatigueOutputSchema},
   prompt: `You are an expert AI system designed to detect driver fatigue by analyzing vehicle telemetry, simulating an LSTM Autoencoder for anomaly detection. Your primary goal is to identify driving patterns that deviate from normal, alert driving.
