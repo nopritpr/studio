@@ -73,7 +73,7 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><Zap className="w-4 h-4"/>Charging Habit</CardTitle>
                     <p className="text-xs text-muted-foreground -mt-2">Clustering model analysis.</p>
                 </CardHeader>
-                <CardContent className="flex items-center justify-center h-full pb-0">
+                <CardContent>
                     <ChargingHabitChart data={analyzeChargingPatterns()} />
                 </CardContent>
             </Card>
