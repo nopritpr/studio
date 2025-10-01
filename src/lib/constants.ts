@@ -42,8 +42,8 @@ export const defaultState: VehicleState = {
   regenEfficiencyDynamic: 0.85,
   thermalThrottleFactor: 1.0,
   regenLimitFactor: 1.0,
-  recentWhPerKm: 160,
-  recentWhPerKmWindow: Array(50).fill(160),
+  recentWhPerKm: 140,
+  recentWhPerKmWindow: Array(50).fill(140),
   styleMetrics: {
     aggression: 0,
     smoothness: 1,
@@ -89,10 +89,11 @@ export const EV_CONSTANTS = {
   rollingResistanceCoeff: 0.009,
   gravity: 9.81,
   drivetrainEfficiency: 0.9,
-  regenEfficiency: 0.4, // Realistic regen efficiency
+  regenEfficiency: 0.7, // Realistic regen efficiency
   chargeRate_kW: 22,
   acPower_kW: 1.5,
   baseConsumption: 140, // Wh/km at moderate speed, no AC, eco mode
+  gentleRegenBrakeRate: 0.8, // m/s^2 for one-pedal driving feel
 };
 
 export const MODE_SETTINGS: Record<
@@ -123,5 +124,3 @@ export const MODE_SETTINGS: Record<
     strongRegenBrakeRate: 7.0,
   },
 };
-
-    
