@@ -81,16 +81,16 @@ export const defaultState: VehicleState = {
 };
 
 export const EV_CONSTANTS = {
-  mass_kg: 1850,
-  frontalArea_m2: 2.25,
-  dragCoeff: 0.27,
+  mass_kg: 1800,
+  frontalArea_m2: 2.3,
+  dragCoeff: 0.28,
   airDensity: 1.225, // kg/m^3
-  rollingResistanceCoeff: 0.011,
+  rollingResistanceCoeff: 0.01,
   gravity: 9.81,
-  drivetrainEfficiency: 0.90, // Motor to wheels
-  maxRegenPower_kW: 70,
+  drivetrainEfficiency: 0.92, // Motor to wheels
+  maxRegenPower_kW: 60,
   chargeRate_kW: 22,
-  acPower_kW: 1.5,
+  acPower_kW: 1.8,
   avgPassengerWeight_kg: 75,
   bootGoodsWeight_kg: 50,
 };
@@ -106,26 +106,24 @@ export const MODE_SETTINGS: Record<
   }
 > = {
   Eco: {
-    maxSpeed: 90,
-    accelRate: 1.2,
+    maxSpeed: 100,
+    accelRate: 1.4,
     decelRate: 0.8,
-    brakeRate: 4.0,
+    brakeRate: 4.5,
     regenEfficiency: 0.9,
   },
   City: {
-    maxSpeed: 120,
-    accelRate: 2.0,
+    maxSpeed: 130,
+    accelRate: 2.2,
     decelRate: 0.5,
-    brakeRate: 5.0,
+    brakeRate: 5.5,
     regenEfficiency: 0.8,
   },
   Sports: {
     maxSpeed: 160,
-    accelRate: 3.5,
+    accelRate: 4.0,
     decelRate: 0.2,
-    brakeRate: 6.0,
-    regenEfficiency: 0.65,
+    brakeRate: 6.5,
+    regenEfficiency: 0.7,
   },
 };
-
-    
