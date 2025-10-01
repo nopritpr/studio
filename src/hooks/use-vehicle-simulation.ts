@@ -167,9 +167,12 @@ export function useVehicleSimulation() {
             physics.regenPower = 0;
             totalPower_kW = (motorPower_kW / modeSettings.powerFactor) / EV_CONSTANTS.drivetrainEfficiency + acPower_kW + accessoryPower_kW;
         }
-        if (newSpeed < 1) { // Apply base accessory draw when idle, but also include AC
+        
+        // Always apply base accessory draw when not charging, even when idle
+        if (newSpeed < 1) {
           totalPower_kW = acPower_kW + accessoryPower_kW;
         }
+
 
         const energyConsumed_kWh = totalPower_kW * (timeDelta / 3600);
         const socChange_percent = (energyConsumed_kWh / state.packNominalCapacity_kWh) * 100;
