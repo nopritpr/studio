@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useVehicleSimulation } from '@/hooks/use-vehicle-simulation';
 import Header from '@/components/dashboard/header';
 import DashboardTab from '@/components/dashboard/tabs/dashboard-tab';
@@ -9,6 +9,8 @@ import OptimizationTab from '@/components/dashboard/tabs/optimization-tab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import HelpModal from './help-modal';
 import ProfileModal from './profile-modal';
+import { AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function Dashboard() {
   const {
@@ -21,7 +23,9 @@ export default function Dashboard() {
     resetTrip,
     setActiveTrip,
     switchProfile,
-    addProfile
+    addProfile,
+    setPassengers,
+    toggleGoodsInBoot,
   } = useVehicleSimulation();
 
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -37,6 +41,8 @@ export default function Dashboard() {
     resetTrip,
     setActiveTrip,
     setState,
+    setPassengers,
+    toggleGoodsInBoot,
   };
 
   return (
@@ -46,7 +52,16 @@ export default function Dashboard() {
         onTabChange={setActiveTab}
         onHelpClick={() => setHelpModalOpen(true)}
       />
-      <main className="flex-grow pt-4 overflow-hidden min-h-0">
+      <main className="flex-grow pt-4 overflow-hidden min-h-0 relative">
+        {state.fatigueWarning && (
+          <Alert variant="destructive" className="absolute top-4 left-1/2 -translate-x-1/2 w-auto max-w-md z-20 animate-in fade-in-50">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Driver Alertness Low!</AlertTitle>
+            <AlertDescription>
+              {state.fatigueWarning}
+            </AlertDescription>
+          </Alert>
+        )}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
           <TabsList className="hidden">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
@@ -71,8 +86,8 @@ export default function Dashboard() {
         </Tabs>
       </main>
       <HelpModal isOpen={isHelpModalOpen} onOpenChange={setHelpModalOpen} />
-      <ProfileModal 
-        isOpen={isProfileModalOpen} 
+      <ProfileModal
+        isOpen={isProfileModalOpen}
         onOpenChange={setProfileModalOpen}
         profiles={state.profiles}
         activeProfile={state.activeProfile}

@@ -108,6 +108,8 @@ export interface VehicleState {
   driveMode: DriveMode;
   acOn: boolean;
   acTemp: number;
+  passengers: number;
+  goodsInBoot: boolean;
   chargingLogs: ChargingLog[];
   lastChargeLog?: { startTime: number; startSOC: number };
   speed: number;
@@ -148,7 +150,7 @@ export interface VehicleState {
     regenShare: number;
     harshEvents: number;
     harshBrakes: number;
-    harshAccel: 0;
+    harshAccel: number;
   };
   lastDegradationUpdate: number;
   lastRangeModelUpdate: number;
@@ -169,4 +171,5 @@ export interface VehicleState {
   drivingRecommendation: string;
   drivingStyle: string;
   drivingStyleRecommendations: string[];
+  fatigueWarning: string | null;
 }

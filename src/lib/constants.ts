@@ -42,7 +42,7 @@ export const defaultState: VehicleState = {
   thermalThrottleFactor: 1.0,
   regenLimitFactor: 1.0,
   recentWhPerKm: 102.2,
-  recentWhPerKmWindow: [],
+  recentWhPerKmWindow: Array(50).fill(102.2),
   styleMetrics: {
     aggression: 0,
     smoothness: 1,
@@ -75,6 +75,9 @@ export const defaultState: VehicleState = {
   drivingRecommendation: 'Start driving to get recommendations.',
   drivingStyle: 'Balanced',
   drivingStyleRecommendations: [],
+  passengers: 1,
+  goodsInBoot: false,
+  fatigueWarning: null,
 };
 
 export const EV_CONSTANTS = {
@@ -87,7 +90,9 @@ export const EV_CONSTANTS = {
   accessoryBase_kW: 0.25,
   drivetrainEfficiency: 0.9,
   maxRegenPower_kW: 70,
-  chargeRate_kW: 22, // Corresponds to approx 1% per 5s for a 50kWh battery
+  chargeRate_kW: 22,
+  avgPassengerWeight_kg: 75,
+  bootGoodsWeight_kg: 50,
 };
 
 export const MODE_SETTINGS: Record<
@@ -100,6 +105,7 @@ export const MODE_SETTINGS: Record<
     regenEfficiency: number;
     powerFactor: number;
     baseConsumption: number; // Wh/km
+    baseRange: number; // km
   }
 > = {
   Eco: {
@@ -109,7 +115,8 @@ export const MODE_SETTINGS: Record<
     brakeRate: 15,
     regenEfficiency: 0.9,
     powerFactor: 1.2,
-    baseConsumption: 102.2, // 46000Wh / 450km = 102.2 Wh/km
+    baseConsumption: 102.2, // 46000Wh / 450km
+    baseRange: 450,
   },
   City: {
     maxSpeed: 75,
@@ -118,7 +125,8 @@ export const MODE_SETTINGS: Record<
     brakeRate: 25,
     regenEfficiency: 0.8,
     powerFactor: 1.0,
-    baseConsumption: 109.5, // 46000Wh / 420km = 109.5 Wh/km
+    baseConsumption: 109.5, // 46000Wh / 420km
+    baseRange: 420,
   },
   Sports: {
     maxSpeed: 120,
@@ -127,6 +135,7 @@ export const MODE_SETTINGS: Record<
     brakeRate: 35,
     regenEfficiency: 0.65,
     powerFactor: 0.8,
-    baseConsumption: 115, // 46000Wh / 400km = 115 Wh/km
+    baseConsumption: 115, // 46000Wh / 400km
+    baseRange: 400,
   },
 };
