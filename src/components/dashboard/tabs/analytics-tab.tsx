@@ -47,8 +47,8 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
     const savings = state.odometer * (8 - 2);
 
     return (
-        <div className="h-full grid grid-cols-5 grid-rows-2 gap-4 min-h-0">
-            <Card className="col-span-5 md:col-span-2 row-span-2 flex flex-col">
+        <div className="h-full grid grid-cols-1 md:grid-cols-3 grid-rows-3 md:grid-rows-2 gap-4 min-h-0">
+            <Card className="col-span-1 md:col-span-1 row-span-1 md:row-span-2 flex flex-col">
                 <CardHeader>
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><BatteryCharging className="w-4 h-4"/>Charging Log</CardTitle>
                 </CardHeader>
@@ -70,7 +70,7 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                 </CardContent>
             </Card>
 
-            <Card className="col-span-5 md:col-span-3 row-span-1 flex flex-col">
+            <Card className="col-span-1 md:col-span-2 row-span-1 flex flex-col">
                 <CardHeader>
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><Zap className="w-4 h-4"/>Charging Habit Analysis</CardTitle>
                     <p className="text-xs text-muted-foreground -mt-2">Uses a Clustering model to identify patterns from charge history.</p>
@@ -80,35 +80,36 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                 </CardContent>
             </Card>
             
-            <Card className="col-span-5 md:col-span-1 row-span-1">
-                <CardHeader>
-                    <CardTitle className="text-sm font-headline flex items-center gap-2"><span className="font-bold text-base">₹</span>Cost Savings</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                    <p className="text-4xl font-bold text-green-400 font-headline">₹{Math.round(savings)}</p>
-                    <p className="text-xs text-muted-foreground">vs. ICE Engine car</p>
-                    <p className="text-[10px] text-muted-foreground/80 mt-2">(ICE @ ₹8/km vs. EV @ ₹2/km)</p>
-                </CardContent>
-            </Card>
-
-            <Card className="col-span-5 md:col-span-1 row-span-1 flex flex-col">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-headline flex items-center gap-2">Fatigue Monitor</CardTitle>
-                     <p className="text-xs text-muted-foreground -mt-2">LSTM Autoencoder anomaly detection.</p>
-                </CardHeader>
-                <CardContent className="flex-grow flex items-center justify-center">
-                    <FatigueMonitorGauge fatigueLevel={state.fatigueLevel} />
-                </CardContent>
-            </Card>
-
-            <Card className="p-4 col-span-5 md:col-span-3">
-              <CardHeader className="p-0 mb-2">
-                 <h4 className="font-semibold text-sm font-headline flex items-center gap-2 mb-1"><TrendingUp className="w-4 h-4" />Dynamic Range Factors</h4>
-                 <p className="text-xs text-muted-foreground -mt-2">Regression model analyzing range impact.</p>
-              </CardHeader>
-              <CardContent className="p-0 h-40">
-                <DynamicRangeChart state={state} />
-              </CardContent>
+            <Card className="col-span-1 md:col-span-2 row-span-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 col-span-1 md:col-span-2">
+                    <CardHeader className="p-0 mb-2">
+                        <h4 className="font-semibold text-sm font-headline flex items-center gap-2 mb-1"><TrendingUp className="w-4 h-4" />Dynamic Range Factors</h4>
+                        <p className="text-xs text-muted-foreground -mt-2">Regression model analyzing range impact.</p>
+                    </CardHeader>
+                    <CardContent className="p-0 h-40">
+                        <DynamicRangeChart state={state} />
+                    </CardContent>
+                </div>
+                <div className="flex flex-col col-span-1 gap-4">
+                     <Card className="flex-1">
+                        <CardHeader>
+                            <CardTitle className="text-sm font-headline flex items-center gap-2"><span className="font-bold text-base">₹</span>Cost Savings</CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-center">
+                            <p className="text-2xl lg:text-3xl font-bold text-green-400 font-headline">₹{Math.round(savings)}</p>
+                            <p className="text-xs text-muted-foreground">vs. ICE car</p>
+                        </CardContent>
+                    </Card>
+                     <Card className="flex-1 flex flex-col">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-headline flex items-center gap-2">Fatigue Monitor</CardTitle>
+                            <p className="text-xs text-muted-foreground -mt-2">LSTM Anomaly detection.</p>
+                        </CardHeader>
+                        <CardContent className="flex-grow flex items-center justify-center">
+                            <FatigueMonitorGauge fatigueLevel={state.fatigueLevel} />
+                        </CardContent>
+                    </Card>
+                </div>
             </Card>
         </div>
     );
