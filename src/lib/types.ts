@@ -109,6 +109,7 @@ export interface VehicleState {
   activeTrip: 'A' | 'B';
   batterySOC: number;
   range: number;
+  initialRange: number;
   driveMode: DriveMode;
   acOn: boolean;
   acTemp: number;
@@ -177,3 +178,5 @@ export interface VehicleState {
   drivingStyleRecommendations: string[];
   fatigueWarning: string | null;
 }
+
+    

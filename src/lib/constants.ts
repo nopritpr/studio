@@ -7,6 +7,7 @@ export const defaultState: VehicleState = {
   activeTrip: 'A',
   batterySOC: 100.0,
   range: 450,
+  initialRange: 450,
   driveMode: 'Eco',
   acOn: false,
   acTemp: 22,
@@ -88,12 +89,10 @@ export const EV_CONSTANTS = {
   rollingResistanceCoeff: 0.009,
   gravity: 9.81,
   drivetrainEfficiency: 0.9,
-  regenEfficiency: 0.2, // Simplified regen efficiency factor
+  regenEfficiency: 0.4, // Realistic regen efficiency
   chargeRate_kW: 22,
-  acPower_kW: 1.5, // Reduced AC power consumption for more realistic impact
-  avgPassengerWeight_kg: 75,
-  bootGoodsWeight_kg: 50,
-  naturalDeceleration: 0.3, // km/h per tick
+  acPower_kW: 1.5,
+  baseConsumption: 160, // Wh/km at moderate speed, no AC, eco mode
 };
 
 export const MODE_SETTINGS: Record<
@@ -103,7 +102,6 @@ export const MODE_SETTINGS: Record<
     accelRate: number; // m/s^2
     brakeRate: number; // m/s^2
     strongRegenBrakeRate: number; // m/s^2
-    baseConsumption: number; // Wh/km
   }
 > = {
   Eco: {
@@ -111,20 +109,19 @@ export const MODE_SETTINGS: Record<
     accelRate: 1.2,
     brakeRate: 4.0,
     strongRegenBrakeRate: 5.0,
-    baseConsumption: 140, // Base Wh/km at low speed
   },
   City: {
     maxSpeed: 140,
     accelRate: 2.0,
     brakeRate: 5.0,
     strongRegenBrakeRate: 6.0,
-    baseConsumption: 165,
   },
   Sports: {
     maxSpeed: 180,
     accelRate: 3.5,
     brakeRate: 6.0,
     strongRegenBrakeRate: 7.0,
-    baseConsumption: 190,
   },
 };
+
+    
