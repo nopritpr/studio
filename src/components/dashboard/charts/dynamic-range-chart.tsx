@@ -32,7 +32,8 @@ export default function DynamicRangeChart({ state }: DynamicRangeChartProps) {
     const tempPenalty = totalWeight > 0 ? (weights.temp / totalWeight) * totalPenalty : 0;
     const driveModePenalty = totalWeight > 0 ? (weights.driveMode / totalWeight) * totalPenalty : 0;
     const loadPenalty = totalWeight > 0 ? (weights.load / totalWeight) * totalPenalty : 0;
-
+    
+    // The data for the chart now correctly reflects the logic: Ideal - Penalties = Predicted
     const data = [
         { name: 'Ideal', value: idealRange, fill: 'hsl(var(--chart-2))' },
         { name: 'A/C', value: -acPenalty, fill: 'hsl(var(--chart-5))' },
@@ -76,22 +77,21 @@ export default function DynamicRangeChart({ state }: DynamicRangeChartProps) {
                 position="right"
                 offset={8}
                 formatter={(value: number, entry: any) => {
-                  if (!entry) {
+                  if (entry === undefined || value === null) {
                     return null;
                   }
+                  
                   const numValue = Number(value);
                   const roundedValue = Math.round(numValue);
-                  
+
                   if (['A/C', 'Temp', 'Drive Mode', 'Load'].includes(entry.name)) {
-                    if (roundedValue === 0 && numValue > -0.5) {
+                    // For penalties, show the label only if the penalty is significant enough to not be 0 when rounded.
+                    // A small threshold like -0.5 ensures we don't show "0 km" for tiny penalties.
+                    if (numValue > -0.5) {
                         return '';
                     }
                   }
-
-                  if (numValue === 0 && entry.name !== 'Ideal' && entry.name !== 'Predicted') {
-                    return '';
-                  }
-
+                  
                   return `${roundedValue} km`;
                 }}
                 className="fill-foreground font-semibold text-xs"
