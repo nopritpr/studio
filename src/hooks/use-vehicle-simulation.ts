@@ -180,14 +180,6 @@ export function useVehicleSimulation() {
     const socChange = newSOC - state.batterySOC;
     newState.batterySOC = newSOC;
     
-    // --- Range Calculation ---
-    const remainingEnergy_kWh = (newSOC / 100) * (state.packNominalCapacity_kWh * state.packUsableFraction) * (state.packSOH / 100);
-    const currentConsumption_kW = Math.max(EV_CONSTANTS.accessoryBase_kW, totalPower_kW);
-    const consumption_kWh_per_km = currentConsumption_kW > 0 && newSpeed > 0 ? (currentConsumption_kW / newSpeed) : (modeSettings.baseConsumption / 1000);
-    const estimatedRange = remainingEnergy_kWh / consumption_kWh_per_km;
-    newState.range = Math.max(0, isFinite(estimatedRange) ? estimatedRange : state.range);
-
-
     // --- History & Other Metrics ---
     const newSpeedHistory = [newSpeed, ...state.speedHistory].slice(0, 50);
     const newAccelerationHistory = [physics.acceleration, ...state.accelerationHistory].slice(0, 50);
@@ -197,6 +189,13 @@ export function useVehicleSimulation() {
     
     const recentWhPerKmWindow = [isFinite(newWhPerKm) && newWhPerKm > 0 ? newWhPerKm : state.recentWhPerKm, ...state.recentWhPerKmWindow].slice(0,100);
     const recentWhPerKm = recentWhPerKmWindow.reduce((a, b) => a + b, 0) / recentWhPerKmWindow.length;
+    
+    // --- Range Calculation ---
+    const remainingEnergy_kWh = (newSOC / 100) * (state.packNominalCapacity_kWh * state.packUsableFraction) * (state.packSOH / 100);
+    const consumption_kWh_per_km = recentWhPerKm > 0 ? recentWhPerKm / 1000 : modeSettings.baseConsumption / 1000;
+    const estimatedRange = remainingEnergy_kWh / consumption_kWh_per_km;
+    newState.range = Math.max(0, isFinite(estimatedRange) ? estimatedRange : state.range);
+
 
     setState({
         ...newState,
