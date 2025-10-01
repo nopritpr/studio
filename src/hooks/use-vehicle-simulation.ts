@@ -67,13 +67,19 @@ export function useVehicleSimulation() {
   }, []);
 
   const callAI = useCallback(async () => {
+    const currentState = stateRef.current;
+    if (
+      currentState.batterySOC === null ||
+      typeof currentState.batterySOC === 'undefined' ||
+      currentState.outsideTemp === null ||
+      typeof currentState.outsideTemp === 'undefined'
+    ) {
+      return; // Do not call AI if state is not ready
+    }
+
     if (Date.now() - lastAiCall.current < 10000) return;
     lastAiCall.current = Date.now();
 
-    const currentState = stateRef.current;
-    if (currentState.batterySOC === null || typeof currentState.batterySOC === 'undefined' || currentState.outsideTemp === null || typeof currentState.outsideTemp === 'undefined') {
-      return;
-    }
 
     try {
       const [rec, style, range, soh] = await Promise.all([
@@ -245,11 +251,12 @@ export function useVehicleSimulation() {
     const prevState = stateRef.current;
     const now = Date.now();
     const timeDelta = (now - prevState.lastUpdate) / 1000;
+    
     if (timeDelta <= 0) {
       requestRef.current = requestAnimationFrame(updateVehicleState);
       return;
     }
-    
+
     const modeSettings = MODE_SETTINGS[prevState.driveMode];
     let currentAcceleration = accelerationRef.current;
 
@@ -326,7 +333,7 @@ export function useVehicleSimulation() {
 
     const newOdometer = prevState.odometer + distanceTraveledKm;
     
-    const instantPower = timeDelta > 0 ? (netEnergyConsumedWh / 1000) / (timeDelta / 3600) : 0;
+    const instantPower = (netEnergyConsumedWh / 1000) / (timeDelta / 3600);
 
     const newState: Partial<VehicleState> = {
       speed: newSpeedKmh,
