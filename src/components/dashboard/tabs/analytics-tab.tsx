@@ -2,8 +2,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ChargingHabitChart from "../charts/charging-habit-chart";
 import type { VehicleState } from "@/lib/types";
-import { Clock, Route, Zap, TrendingUp, HeartPulse, Thermometer, BatteryCharging } from "lucide-react";
+import { Clock, Route, Zap, TrendingUp, HeartPulse, Thermometer, BatteryCharging, HelpCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface AnalyticsTabProps {
     state: VehicleState;
@@ -70,6 +71,7 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
             <Card className="col-span-5 md:col-span-3 row-span-1 flex flex-col">
                 <CardHeader>
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><Zap className="w-4 h-4"/>Charging Habit Analysis</CardTitle>
+                    <p className="text-xs text-muted-foreground -mt-2">Uses a Clustering model to identify patterns from charge history.</p>
                 </CardHeader>
                 <CardContent className="flex-grow flex items-center justify-center min-h-0 min-w-0">
                     <ChargingHabitChart data={analyzeChargingPatterns()} />
@@ -116,7 +118,20 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                     <span className="text-lg">{state.batterySOC.toFixed(1)}%</span>
                     <div className="text-right">
                         <span className="font-semibold text-lg">{Math.round( (state.packSOH/100) * state.packUsableFraction * state.batteryCapacity_kWh / (state.recentWhPerKm > 0 ? state.recentWhPerKm/1000 : 0.18) * (state.batterySOC/100) )} km</span>
-                        <p className="text-xs text-primary font-normal" title="Based on driving style, temperature, and usage patterns">AI: {Math.round(state.predictedDynamicRange)} km</p>
+                        <p className="text-xs text-primary font-normal flex items-center justify-end gap-1">
+                          AI: {Math.round(state.predictedDynamicRange)} km
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs text-xs" side="top" align="end">
+                                <h4 className="font-bold mb-1">Dynamic Range Predictor (Regression Model)</h4>
+                                <p>This prediction uses a regression model to estimate range based on driving style, A/C usage, outside temperature, passengers, and cargo weight.</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </p>
                     </div>
                 </div>
               </CardContent>

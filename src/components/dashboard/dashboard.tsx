@@ -60,6 +60,7 @@ export default function Dashboard() {
             <AlertTitle>Driver Alertness Low!</AlertTitle>
             <AlertDescription>
               {state.fatigueWarning}
+              <p className="text-xs opacity-80 mt-1">(Anomaly Detection Model identified erratic driving)</p>
             </AlertDescription>
           </Alert>
         )}

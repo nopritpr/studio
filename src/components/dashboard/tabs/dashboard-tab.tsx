@@ -13,8 +13,14 @@ import NavigationMap from '../navigation-map';
 import Weather from '../weather';
 import { useToast } from "@/hooks/use-toast";
 import React, { useState, useEffect } from 'react';
-import { Users, Package } from 'lucide-react';
+import { Users, Package, HelpCircle } from 'lucide-react';
 import { Label } from "@/components/ui/label";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface DashboardTabProps {
   state: VehicleState;
@@ -245,7 +251,20 @@ export default function DashboardTab({
               <span className="text-lg">{state.batterySOC.toFixed(1)}%</span>
               <div className="text-right">
                   <span className="font-semibold text-lg">{Math.round(state.range)} km</span>
-                  <p className="text-xs text-primary font-normal" title="Based on driving style, temperature, and usage patterns">AI: {Math.round(state.predictedDynamicRange)} km</p>
+                  <p className="text-xs text-primary font-normal flex items-center justify-end gap-1">
+                    AI: {Math.round(state.predictedDynamicRange)} km
+                     <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs text-xs" side="top" align="end">
+                          <h4 className="font-bold mb-1">Dynamic Range Predictor (Regression Model)</h4>
+                          <p>This prediction uses a regression model to estimate range based on driving style, A/C usage, outside temperature, passengers, and cargo weight.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </p>
               </div>
           </div>
         </Card>

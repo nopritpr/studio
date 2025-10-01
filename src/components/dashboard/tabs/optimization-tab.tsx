@@ -50,8 +50,9 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
   return (
         <div className="h-full grid grid-cols-3 grid-rows-2 gap-4 min-h-0">
             <Card className="flex flex-col items-center justify-center">
-                <CardHeader className="items-center">
+                <CardHeader className="items-center pb-2">
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><BarChart className="w-4 h-4"/>Eco-Driving Score</CardTitle>
+                     <p className="text-xs text-muted-foreground text-center -mt-2">Classification model analyzing driving style.</p>
                 </CardHeader>
                 <CardContent className="flex-grow w-48 h-48">
                     <EcoScoreGauge score={state.ecoScore} />
@@ -86,6 +87,7 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
             <Card className="col-span-3 md:col-span-2 flex flex-col">
                 <CardHeader>
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><HeartPulse className="w-4 h-4"/>Battery Health (SOH) Forecast</CardTitle>
+                    <p className="text-xs text-muted-foreground -mt-2">Time-series model projecting SOH based on historical usage and driving patterns.</p>
                 </CardHeader>
                 <CardContent className="flex-1 min-h-0">
                    {state.sohForecast && state.sohForecast.length > 0 ? (
@@ -101,6 +103,7 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
             <Card className="p-4">
                  <CardHeader>
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><BrainCircuit className="w-4 h-4"/>AI Insights & Controls</CardTitle>
+                    <p className="text-xs text-muted-foreground -mt-2">Classification model analyzing driving behavior for tips.</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="text-xs grid grid-cols-1 gap-2 mb-4 h-32 overflow-y-auto pr-2">
