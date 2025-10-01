@@ -68,7 +68,7 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card className="flex flex-col">
                 <CardHeader>
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><Zap className="w-4 h-4"/>Charging Habit</CardTitle>
                     <p className="text-xs text-muted-foreground -mt-2">Clustering model analysis.</p>
@@ -88,12 +88,12 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                         <p className="text-xs text-muted-foreground">vs. ICE car</p>
                     </CardContent>
                 </Card>
-                 <Card>
+                 <Card className="flex flex-col">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-headline">Fatigue Monitor</CardTitle>
                         <p className="text-xs text-muted-foreground -mt-2">LSTM Anomaly detection.</p>
                     </CardHeader>
-                    <CardContent className="flex items-center justify-center">
+                    <CardContent className="flex-grow flex items-center justify-center">
                         <FatigueMonitorGauge fatigueLevel={state.fatigueLevel} />
                     </CardContent>
                 </Card>
