@@ -21,7 +21,7 @@ export default function DynamicRangeChart({ state }: DynamicRangeChartProps) {
 
     const weights = {
       ac: state.acOn ? 0.3 : 0,
-      temp: Math.abs(22 - state.outsideTemp) > 8 ? 0.2 : 0,
+      temp: Math.abs(22 - state.outsideTemp) > 5 ? 0.2 : 0,
       driveMode: state.driveMode === 'Sports' ? 0.4 : (state.driveMode === 'City' ? 0.2 : 0),
       load: (state.passengers > 1 || state.goodsInBoot) ? 0.1 : 0,
     };
@@ -51,6 +51,7 @@ export default function DynamicRangeChart({ state }: DynamicRangeChartProps) {
         data={data}
         layout="vertical"
         margin={{ left: 10, right: 50 }}
+        stackOffset="sign"
       >
         <CartesianGrid horizontal={false} />
         <YAxis
@@ -81,14 +82,12 @@ export default function DynamicRangeChart({ state }: DynamicRangeChartProps) {
                   const numValue = Number(value);
                   const roundedValue = Math.round(numValue);
                   
-                  // For penalty bars, if the rounded value is 0, show nothing unless the actual value is significantly small
                   if (['A/C', 'Temp', 'Drive Mode', 'Load'].includes(entry.name)) {
                     if (roundedValue === 0 && numValue > -0.5) {
                         return '';
                     }
                   }
 
-                  // For non-penalty bars, if value is 0, don't show label (unless it's 'Ideal' or 'Predicted' with a genuine 0 value)
                   if (numValue === 0 && entry.name !== 'Ideal' && entry.name !== 'Predicted') {
                     return '';
                   }
