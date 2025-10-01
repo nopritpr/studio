@@ -15,31 +15,21 @@ interface DynamicRangeChartProps {
 
 export default function DynamicRangeChart({ state }: DynamicRangeChartProps) {
     const idealRange = state.initialRange * (state.batterySOC / 100);
-    const predictedRange = state.predictedDynamicRange;
-    const totalPenalty = Math.max(0, idealRange - predictedRange);
 
-    const weights = {
-      ac: state.acOn ? 0.3 : 0,
-      temp: Math.abs(22 - state.outsideTemp) > 5 ? 0.2 : 0,
-      driveMode: state.driveMode === 'Sports' ? 0.4 : (state.driveMode === 'City' ? 0.2 : 0),
-      load: (state.passengers > 1 || state.goodsInBoot) ? 0.1 : 0,
-    };
+    const acPenalty = state.acOn ? 15 : 0;
+    const tempPenalty = Math.abs(22 - state.outsideTemp) > 8 ? 10 : 0;
+    const driveModePenalty = state.driveMode === 'Sports' ? 25 : (state.driveMode === 'City' ? 10 : 0);
+    const loadPenalty = (state.passengers > 1 || state.goodsInBoot) ? 8 : 0;
 
-    const totalWeight = Object.values(weights).reduce((sum, w) => sum + w, 0);
+    const totalPenalty = acPenalty + tempPenalty + driveModePenalty + loadPenalty;
+    const predictedRange = Math.max(0, idealRange - totalPenalty);
 
-    const penalties = {
-        ac: totalWeight > 0 ? (weights.ac / totalWeight) * totalPenalty : 0,
-        temp: totalWeight > 0 ? (weights.temp / totalWeight) * totalPenalty : 0,
-        driveMode: totalWeight > 0 ? (weights.driveMode / totalWeight) * totalPenalty : 0,
-        load: totalWeight > 0 ? (weights.load / totalWeight) * totalPenalty : 0,
-    };
-    
     const data = [
         { name: 'Ideal', value: idealRange, fill: 'hsl(var(--chart-2))' },
-        { name: 'A/C', value: -penalties.ac, fill: 'hsl(var(--chart-5))' },
-        { name: 'Temp', value: -penalties.temp, fill: 'hsl(var(--chart-5))' },
-        { name: 'Drive Mode', value: -penalties.driveMode, fill: 'hsl(var(--chart-5))' },
-        { name: 'Load', value: -penalties.load, fill: 'hsl(var(--chart-5))' },
+        { name: 'A/C', value: -acPenalty, fill: 'hsl(var(--chart-5))' },
+        { name: 'Temp', value: -tempPenalty, fill: 'hsl(var(--chart-5))' },
+        { name: 'Drive Mode', value: -driveModePenalty, fill: 'hsl(var(--chart-5))' },
+        { name: 'Load', value: -loadPenalty, fill: 'hsl(var(--chart-5))' },
         { name: 'Predicted', value: predictedRange, fill: 'hsl(var(--primary))' },
     ];
 
