@@ -45,41 +45,53 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
     const savings = state.odometer * (8 - 2);
 
     return (
-        <div className="h-full grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4 min-h-0">
-            <Card className="md:col-span-1 md:row-span-2 flex flex-col">
-                <CardHeader>
-                    <CardTitle className="text-sm font-headline flex items-center gap-2"><BatteryCharging className="w-4 h-4"/>Charging Log</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-grow overflow-y-auto pr-2 min-h-0">
-                    {state.chargingLogs.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-8">No charging sessions logged.</p>
-                    ) : (
-                        <div className="space-y-2">
-                           {state.chargingLogs.slice().reverse().map((log, index) => (
-                             <div key={index} className="text-xs p-2 rounded-md bg-muted/50">
-                                <p><strong>{new Date(log.startTime).toLocaleString()}</strong></p>
-                                <p>Duration: {((log.endTime - log.startTime) / 60000).toFixed(1)} mins</p>
-                                <p>SOC: {log.startSOC.toFixed(1)}% → {log.endSOC.toFixed(1)}% (+{(log.endSOC - log.startSOC).toFixed(1)}%)</p>
-                                <p>Energy: {log.energyAdded.toFixed(2)} kWh</p>
+        <div className="h-full grid grid-cols-1 md:grid-cols-2 gap-4 min-h-0">
+            {/* Left Column */}
+            <div className="flex flex-col gap-4">
+                <Card className="flex-1 flex flex-col">
+                    <CardHeader>
+                        <CardTitle className="text-sm font-headline flex items-center gap-2"><BatteryCharging className="w-4 h-4"/>Charging Log</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-grow overflow-y-auto pr-2 min-h-0">
+                        {state.chargingLogs.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-8">No charging sessions logged.</p>
+                        ) : (
+                            <div className="space-y-2">
+                            {state.chargingLogs.slice().reverse().map((log, index) => (
+                                <div key={index} className="text-xs p-2 rounded-md bg-muted/50">
+                                    <p><strong>{new Date(log.startTime).toLocaleString()}</strong></p>
+                                    <p>Duration: {((log.endTime - log.startTime) / 60000).toFixed(1)} mins</p>
+                                    <p>SOC: {log.startSOC.toFixed(1)}% → {log.endSOC.toFixed(1)}% (+{(log.endSOC - log.startSOC).toFixed(1)}%)</p>
+                                    <p>Energy: {log.energyAdded.toFixed(2)} kWh</p>
+                                </div>
+                            ))}
                             </div>
-                           ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                        )}
+                    </CardContent>
+                </Card>
+                <Card className="flex-1 flex flex-col">
+                    <CardHeader className="p-4">
+                        <h4 className="font-semibold text-sm font-headline flex items-center gap-2 mb-1"><TrendingUp className="w-4 h-4" />Dynamic Range Factors</h4>
+                        <p className="text-xs text-muted-foreground -mt-2">Regression model analyzing range impact.</p>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0 h-full flex-grow">
+                        <DynamicRangeChart state={state} />
+                    </CardContent>
+                </Card>
+            </div>
 
-            <Card className="md:col-span-1 flex flex-col">
-                <CardHeader>
-                    <CardTitle className="text-sm font-headline flex items-center gap-2"><Zap className="w-4 h-4"/>Charging Habit</CardTitle>
-                    <p className="text-xs text-muted-foreground -mt-2">Clustering model analysis.</p>
-                </CardHeader>
-                <CardContent className="flex-grow flex items-center justify-center min-h-0">
-                    <ChargingHabitChart data={analyzeChargingPatterns()} />
-                </CardContent>
-            </Card>
-
+            {/* Right Column */}
             <div className="flex flex-col gap-4">
                 <Card>
+                    <CardHeader>
+                        <CardTitle className="text-sm font-headline flex items-center gap-2"><Zap className="w-4 h-4"/>Charging Habit</CardTitle>
+                        <p className="text-xs text-muted-foreground -mt-2">Clustering model analysis.</p>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-center">
+                        <ChargingHabitChart data={analyzeChargingPatterns()} />
+                    </CardContent>
+                </Card>
+                 <Card>
                     <CardHeader>
                         <CardTitle className="text-sm font-headline flex items-center gap-2"><span className="font-bold text-base">₹</span>Cost Savings</CardTitle>
                     </CardHeader>
@@ -93,21 +105,11 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                         <CardTitle className="text-sm font-headline">Fatigue Monitor</CardTitle>
                         <p className="text-xs text-muted-foreground -mt-2">LSTM Anomaly detection.</p>
                     </CardHeader>
-                    <CardContent className="flex items-center justify-center h-full">
+                    <CardContent className="flex items-center justify-center">
                         <FatigueMonitorGauge fatigueLevel={state.fatigueLevel} />
                     </CardContent>
                 </Card>
             </div>
-            
-            <Card className="md:col-span-2 flex flex-col">
-                <CardHeader className="p-4">
-                    <h4 className="font-semibold text-sm font-headline flex items-center gap-2 mb-1"><TrendingUp className="w-4 h-4" />Dynamic Range Factors</h4>
-                    <p className="text-xs text-muted-foreground -mt-2">Regression model analyzing range impact.</p>
-                </CardHeader>
-                <CardContent className="p-4 pt-0 h-full flex-grow">
-                    <DynamicRangeChart state={state} />
-                </CardContent>
-            </Card>
         </div>
     );
 }
