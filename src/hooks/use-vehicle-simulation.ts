@@ -18,8 +18,28 @@ const keys: Record<string, boolean> = {
 };
 
 function stateReducer(state: VehicleState, action: Partial<VehicleState>): VehicleState {
-  return { ...state, ...action };
+  const newState = { ...state, ...action };
+
+  // Re-calculate range whenever relevant state changes
+  if ('driveMode' in action || 'acOn' in action || 'acTemp' in action || 'batterySOC' in action || 'packSOH' in action) {
+      const modeSettings = MODE_SETTINGS[newState.driveMode];
+      let consumption = newState.recentWhPerKm > 0 ? newState.recentWhPerKm : modeSettings.baseConsumption;
+      
+      if (newState.acOn) {
+          consumption *= 1.10;
+          const tempDiff = Math.abs(newState.outsideTemp - newState.acTemp);
+          consumption += tempDiff * 2;
+      }
+
+      const remainingEnergy_kWh = (newState.batterySOC / 100) * (newState.packNominalCapacity_kWh * newState.packUsableFraction) * (newState.packSOH / 100);
+      const estimatedRange = remainingEnergy_kWh / (consumption / 1000);
+      
+      newState.range = Math.max(0, isFinite(estimatedRange) ? estimatedRange : 0);
+  }
+
+  return newState;
 }
+
 
 export function useVehicleSimulation() {
   const [state, setState] = useReducer(stateReducer, defaultState);
@@ -37,7 +57,6 @@ export function useVehicleSimulation() {
       return;
     }
     try {
-      // Create a stable copy of the state for this async operation
       const currentState = { ...state };
 
       const [rec, style, range, soh] = await Promise.all([
@@ -89,28 +108,9 @@ export function useVehicleSimulation() {
     } catch (error) {
       console.error('AI Flow error:', error);
     }
-  }, [state.batterySOC, state.acOn, state.acTemp, state.batteryCapacity_kWh, state.accelerationHistory, state.driveMode, state.driveModeHistory, state.drivingStyle, state.ecoScore, state.outsideTemp, state.powerHistory, state.predictedDynamicRange, state.sohHistory, state.speedHistory, state.weather]);
+  }, [state]);
 
 
-  const calculateRange = useCallback((currentState: VehicleState) => {
-    const modeSettings = MODE_SETTINGS[currentState.driveMode];
-    let consumption = currentState.recentWhPerKm > 0 ? currentState.recentWhPerKm : modeSettings.baseConsumption;
-    
-    // Add AC consumption
-    if (currentState.acOn) {
-        // Base 10% penalty
-        consumption *= 1.10;
-        // Add penalty for temperature difference
-        const tempDiff = Math.abs(currentState.outsideTemp - currentState.acTemp);
-        consumption += tempDiff * 2; // Add 2 Wh/km for every degree of difference
-    }
-
-    const remainingEnergy_kWh = (currentState.batterySOC / 100) * (currentState.packNominalCapacity_kWh * currentState.packUsableFraction) * (currentState.packSOH / 100);
-    const estimatedRange = remainingEnergy_kWh / (consumption / 1000);
-    
-    return Math.max(0, isFinite(estimatedRange) ? estimatedRange : 0);
-  }, []);
-  
   const updateVehicleState = useCallback(() => {
     setState(prevState => {
         const now = Date.now();
@@ -121,7 +121,6 @@ export function useVehicleSimulation() {
         const physics = physicsRef.current;
         const modeSettings = MODE_SETTINGS[prevState.driveMode];
 
-        // --- Acceleration & Speed ---
         let targetAcceleration = 0;
         if (keys.ArrowUp) {
         targetAcceleration = modeSettings.accelRate;
@@ -149,7 +148,6 @@ export function useVehicleSimulation() {
         newSpeed = Math.max(0, Math.min(modeSettings.maxSpeed, newSpeed));
         newState.speed = newSpeed;
 
-        // --- Odometer & Trip ---
         const distanceTraveled = (newSpeed * timeDelta) / 3600;
         newState.odometer = (prevState.odometer || 0) + distanceTraveled;
         if(prevState.activeTrip === 'A') {
@@ -158,7 +156,6 @@ export function useVehicleSimulation() {
             newState.tripB = (prevState.tripB || 0) + distanceTraveled;
         }
 
-        // --- Power & Battery ---
         const speed_mps = newSpeed / 3.6;
         const aeroDrag = 0.5 * EV_CONSTANTS.airDensity * EV_CONSTANTS.frontalArea_m2 * EV_CONSTANTS.dragCoeff * Math.pow(speed_mps, 2);
         const rollingResistance = EV_CONSTANTS.rollingResistanceCoeff * EV_CONSTANTS.mass_kg * EV_CONSTANTS.gravity;
@@ -178,7 +175,7 @@ export function useVehicleSimulation() {
             newSOC += socChange;
             totalPower_kW = -EV_CONSTANTS.chargeRate_kW;
         } else {
-            if (physics.regenActive && motorPower_kW < 0) {
+            if (physics.regenActive && motorPower_kW < 0 && newSpeed > 1) {
                 physics.regenPower = Math.min(EV_CONSTANTS.maxRegenPower_kW, Math.abs(motorPower_kW)) * modeSettings.regenEfficiency;
                 totalPower_kW = -physics.regenPower;
             } else {
@@ -198,7 +195,6 @@ export function useVehicleSimulation() {
         const socChange = newSOC - prevState.batterySOC;
         newState.batterySOC = newSOC;
         
-        // --- History & Other Metrics ---
         newState.power = totalPower_kW;
         const powerForConsumption = Math.max(0, totalPower_kW);
         const currentWhPerKm = newSpeed > 1 ? (powerForConsumption * 1000) / newSpeed : 0;
@@ -207,7 +203,6 @@ export function useVehicleSimulation() {
         newState.recentWhPerKm = Math.max(50, Math.min(500, smoothedWhPerKm));
 
         const finalState = {...prevState, ...newState};
-        newState.range = calculateRange(finalState);
 
         return {
             ...finalState,
@@ -222,7 +217,7 @@ export function useVehicleSimulation() {
         };
     });
     requestAnimationFrame(updateVehicleState);
-  }, [calculateRange]);
+  }, []);
 
 
   useEffect(() => {
@@ -250,7 +245,7 @@ export function useVehicleSimulation() {
     window.addEventListener('keyup', handleKeyUp);
 
     const simId = requestAnimationFrame(updateVehicleState);
-    const aiTimer = setInterval(callAI, 10000); // Call AI every 10 seconds
+    const aiTimer = setInterval(callAI, 10000);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
@@ -262,24 +257,15 @@ export function useVehicleSimulation() {
   }, [callAI]);
 
   const setDriveMode = (mode: DriveMode) => {
-    setState(prevState => {
-        const newState = {...prevState, driveMode: mode, recentWhPerKm: MODE_SETTINGS[mode].baseConsumption };
-        return { ...newState, range: calculateRange(newState) };
-    });
+    setState({ driveMode: mode, recentWhPerKm: MODE_SETTINGS[mode].baseConsumption });
   };
   
   const toggleAC = () => {
-     setState(prevState => {
-        const newState = {...prevState, acOn: !prevState.acOn };
-        return { ...newState, range: calculateRange(newState) };
-    });
+     setState({ acOn: !state.acOn });
   };
 
   const setAcTemp = (temp: number) => {
-    setState(prevState => {
-        const newState = {...prevState, acTemp: temp};
-        return { ...newState, range: calculateRange(newState) };
-    });
+    setState({ acTemp: temp });
   }
 
   const toggleCharging = () => {
@@ -314,12 +300,12 @@ export function useVehicleSimulation() {
         endTime: now,
         startSOC: log.startSOC,
         endSOC: state.batterySOC,
-        energyAdded: Math.max(0, energyAdded), // Ensure energy added is not negative
+        energyAdded: Math.max(0, energyAdded),
       };
       newLogs.push(newLog);
       setState({ 
         isCharging,
-        chargingLogs: newLogs.slice(-10), // Keep last 10 logs
+        chargingLogs: newLogs.slice(-10),
         lastChargeLog: undefined,
       });
     }
@@ -364,3 +350,5 @@ export function useVehicleSimulation() {
     addProfile
   };
 }
+
+    
