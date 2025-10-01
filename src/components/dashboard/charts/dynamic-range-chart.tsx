@@ -33,7 +33,6 @@ export default function DynamicRangeChart({ state }: DynamicRangeChartProps) {
     const driveModePenalty = totalWeight > 0 ? (weights.driveMode / totalWeight) * totalPenalty : 0;
     const loadPenalty = totalWeight > 0 ? (weights.load / totalWeight) * totalPenalty : 0;
 
-
     const data = [
         { name: 'Ideal', value: idealRange, fill: 'hsl(var(--chart-2))' },
         { name: 'A/C', value: -acPenalty, fill: 'hsl(var(--chart-5))' },
@@ -52,7 +51,6 @@ export default function DynamicRangeChart({ state }: DynamicRangeChartProps) {
         data={data}
         layout="vertical"
         margin={{ left: 10, right: 50 }}
-        stackOffset="sign"
       >
         <CartesianGrid horizontal={false} />
         <YAxis
@@ -76,11 +74,15 @@ export default function DynamicRangeChart({ state }: DynamicRangeChartProps) {
                 dataKey="value"
                 position="right"
                 offset={8}
-                formatter={(value: number) => {
+                formatter={(value: number, entry: any) => {
                   const numValue = Number(value);
-                  if (numValue === 0) return '';
+                  if (numValue === 0 && entry.name !== 'Ideal' && entry.name !== 'Predicted') return '';
+                  
                   const roundedValue = Math.round(numValue);
-                  if (['A/C', 'Temp', 'Drive Mode', 'Load'].includes(data.find(d => d.value === value)?.name || '') && roundedValue === 0) return '';
+
+                  if (['A/C', 'Temp', 'Drive Mode', 'Load'].includes(entry.name) && roundedValue === 0) {
+                     return numValue < -0.1 ? `${roundedValue} km` : '';
+                  }
                   
                   return `${roundedValue} km`;
                 }}
