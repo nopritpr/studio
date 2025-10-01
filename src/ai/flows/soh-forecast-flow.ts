@@ -48,7 +48,7 @@ export async function forecastSoh(input: SohForecastInput): Promise<SohForecastO
 
 const prompt = ai.definePrompt({
   name: 'sohForecastPrompt',
-  model: 'googleai/gemini-1.5-flash-latest',
+  model: 'googleai/gemini-pro',
   input: {schema: SohForecastInputSchema},
   output: {schema: SohForecastOutputSchema},
   prompt: `You are a battery health forecasting expert. Given the historical driving data, predict the future State of Health (SOH) of the battery at different odometer readings.

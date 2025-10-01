@@ -52,7 +52,7 @@ export async function predictRange(input: PredictiveRangeInput): Promise<Predict
 
 const prompt = ai.definePrompt({
   name: 'predictiveRangePrompt',
-  model: 'googleai/gemini-1.5-flash-latest',
+  model: 'googleai/gemini-pro',
   input: {schema: PredictiveRangeInputSchema},
   output: {schema: PredictiveRangeOutputSchema},
   prompt: `You are an expert AI system that predicts the remaining range of an electric vehicle based on various factors. Your goal is to provide a more accurate range estimation than the standard one.
