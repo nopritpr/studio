@@ -399,7 +399,7 @@ export function useVehicleSimulation() {
   
   // AI Effects
   useEffect(() => {
-    // Run once on mount
+    // Run once on mount for idle prediction
     triggerIdlePrediction();
   
     const idlePredictionInterval = setInterval(() => {
@@ -417,9 +417,13 @@ export function useVehicleSimulation() {
   }, [triggerIdlePrediction]);
 
   useEffect(() => {
-    triggerAcImpactForecast(); // Run on initial mount
-    const acImpactInterval = setInterval(triggerAcImpactForecast, 5000);
-    return () => clearInterval(acImpactInterval);
+    // This effect now correctly handles updates for AC Impact.
+    // It runs on mount and whenever a relevant dependency changes.
+    const timer = setTimeout(() => {
+        triggerAcImpactForecast();
+    }, 500); // Debounce to avoid rapid firing
+
+    return () => clearTimeout(timer);
   }, [triggerAcImpactForecast, vehicleState.acOn, vehicleState.acTemp, vehicleState.outsideTemp]);
 
 
