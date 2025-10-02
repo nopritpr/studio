@@ -216,7 +216,6 @@ export function useVehicleSimulation() {
     
     // Temperature Penalty
     const outsideTemp = currentState.outsideTemp || 22;
-    const tempDiffFromIdeal = Math.abs(22 - outsideTemp);
     if (outsideTemp < 10) {
         penaltyPercentage.temp = (10 - outsideTemp) * 0.01; // 1% penalty for each degree below 10°C
     } else if (outsideTemp > 25) {
@@ -268,46 +267,21 @@ export function useVehicleSimulation() {
 
   const idleStartTimeRef = useRef<number | null>(null);
 
-  async function triggerWeatherImpactForecast(forecastData: FiveDayForecast | null) {
-    if (isWeatherImpactRunning.current || !forecastData) {
-      return;
-    }
-    isWeatherImpactRunning.current = true;
-    try {
-      const input: GetWeatherImpactInput = {
-        currentSOC: vehicleStateRef.current.batterySOC,
-        initialRange: vehicleStateRef.current.initialRange,
-        forecast: forecastData.list.map(item => ({
-          temp: item.main.temp,
-          precipitation: item.weather[0].main,
-          windSpeed: item.wind.speed,
-        })).slice(0, 5) // Ensure only 5 days are sent
-      };
-      const result = await getWeatherImpact(input);
-      setAiState({ weatherImpact: result });
-    } catch (error) {
-      console.error("Error calling getWeatherImpact:", error);
-      setAiState({ weatherImpact: null });
-    } finally {
-        isWeatherImpactRunning.current = false;
-    }
-  }
-
   const isFatigueCheckRunning = useRef(false);
-  async function triggerFatigueCheck() {
+  const triggerFatigueCheck = useCallback(async () => {
       if (isFatigueCheckRunning.current) return;
       isFatigueCheckRunning.current = true;
 
       try {
           const currentState = vehicleStateRef.current;
           if (currentState.speed < 10) { // Don't check when stationary or slow
+            setAiState({ fatigueLevel: 0, fatigueWarning: null });
             isFatigueCheckRunning.current = false;
             return;
           }
           const fatigueInput: DriverFatigueInput = {
               speedHistory: currentState.speedHistory.slice(0, 60),
               accelerationHistory: currentState.accelerationHistory.slice(0, 60),
-              // Simulate harsh events for now
               harshBrakingEvents: currentState.accelerationHistory.slice(0, 60).filter(a => a < -3).length,
               harshAccelerationEvents: currentState.accelerationHistory.slice(0, 60).filter(a => a > 3).length,
           };
@@ -323,7 +297,7 @@ export function useVehicleSimulation() {
       } finally {
           isFatigueCheckRunning.current = false;
       }
-  }
+  }, []);
 
 
   const updateVehicleState = useCallback(() => {
@@ -403,8 +377,8 @@ export function useVehicleSimulation() {
       const chargePerSecond = 1 / 5;
       newSOC += chargePerSecond * timeDelta;
     } else if (!isActuallyIdle) {
-      if (currentAcceleration < 0) {
-        socUsed *= (1 - EV_CONSTANTS.regenEfficiency); // Reduce drain
+      if (currentAcceleration < -EV_CONSTANTS.gentleRegenBrakeRate) { // Regenerative braking
+        socUsed *= (1 - EV_CONSTANTS.regenEfficiency); // Reduce drain, don't add SOC
       }
       newSOC -= socUsed;
     }
@@ -460,6 +434,7 @@ export function useVehicleSimulation() {
   useEffect(() => {
     triggerIdlePrediction();
     triggerAcImpactForecast();
+    triggerFatigueCheck();
 
     const idlePredictionInterval = setInterval(() => {
       const isIdle = vehicleStateRef.current.speed === 0 && !vehicleStateRef.current.isCharging;
@@ -476,7 +451,7 @@ export function useVehicleSimulation() {
       clearInterval(idlePredictionInterval);
       clearInterval(fatigueCheckInterval);
     };
-  }, [triggerIdlePrediction, triggerAcImpactForecast]);
+  }, [triggerIdlePrediction, triggerAcImpactForecast, triggerFatigueCheck]);
 
   const isWeatherImpactRunning = useRef(false);
 
