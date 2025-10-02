@@ -3,10 +3,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import EcoScoreGauge from "../charts/eco-score-gauge";
-import type { VehicleState, AiState, GetWeatherImpactOutput } from "@/lib/types";
-import { Leaf, User, BrainCircuit, BarChart, Wind, CloudSun, CloudRain, Snowflake, TrendingDown, Thermometer } from "lucide-react";
+import type { VehicleState, AiState } from "@/lib/types";
+import { Leaf, User, BrainCircuit, BarChart, Wind } from "lucide-react";
 import IdleDrainChart from "../charts/idle-drain-chart";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface OptimizationTabProps {
     state: VehicleState & AiState;
@@ -41,61 +40,34 @@ const AcImpactDisplay = ({ impact, recommendation }: { impact: number, recommend
   );
 };
 
-const WeatherImpactIcon = ({ reason }: { reason: string }) => {
-    const lowerReason = reason.toLowerCase();
-    if (lowerReason.includes('snow')) return <Snowflake className="w-5 h-5 text-blue-300" />;
-    if (lowerReason.includes('rain')) return <CloudRain className="w-5 h-5 text-blue-400" />;
-    if (lowerReason.includes('cold')) return <Thermometer className="w-5 h-5 text-blue-500" />;
-    if (lowerReason.includes('hot')) return <Thermometer className="w-5 h-5 text-red-500" />;
-    if (lowerReason.includes('wind')) return <Wind className="w-5 h-5 text-gray-400" />;
-    return <CloudSun className="w-5 h-5 text-yellow-500" />;
+const GreenScoreCard = ({ score }: { score: number }) => {
+  const scoreInKg = score / 1000;
+  return (
+    <Card className="flex flex-col">
+      <CardHeader>
+        <CardTitle className="text-sm font-headline flex items-center gap-2">
+          <Leaf className="w-4 h-4 text-green-500" />Green Score
+        </CardTitle>
+        <p className="text-xs text-muted-foreground -mt-2">
+          Estimated CO2 saved vs. a standard gasoline car.
+        </p>
+      </CardHeader>
+      <CardContent className="flex-grow flex flex-col items-center justify-center text-center">
+        <p className="text-3xl lg:text-4xl font-bold text-green-400 font-headline">
+          {scoreInKg.toFixed(1)}
+        </p>
+        <p className="text-sm font-medium text-muted-foreground">kg CO₂</p>
+      </CardContent>
+    </Card>
+  );
 };
 
-
-const WeatherImpactForecast = ({ data }: { data: GetWeatherImpactOutput | null }) => {
-    return (
-        <Card className="flex flex-col">
-            <CardHeader>
-                <CardTitle className="text-sm font-headline flex items-center gap-2"><TrendingDown className="w-4 h-4"/>Weather Impact Forecast</CardTitle>
-                <p className="text-xs text-muted-foreground -mt-2">5-day range penalty prediction.</p>
-            </CardHeader>
-            <CardContent className="flex-grow flex flex-col justify-center px-4 pb-4">
-                {data ? (
-                    <div className="space-y-2">
-                        {data.dailyImpacts.map(impact => (
-                             <div key={impact.day} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 text-xs">
-                                <span className="font-semibold">{impact.day}</span>
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                   <WeatherImpactIcon reason={impact.reason} />
-                                   <span>{impact.reason}</span>
-                                </div>
-                                <span className="font-mono font-semibold text-destructive justify-self-end">
-                                    {impact.rangePenaltyKm.toFixed(0)} km
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="space-y-2">
-                        <p className="text-sm text-center text-muted-foreground font-semibold">Waiting for Weather Forecast</p>
-                        <p className="text-xs text-center text-muted-foreground">The 5-day impact prediction will be generated once weather data is available.</p>
-                        <div className="space-y-2 pt-2">
-                            <Skeleton className="h-4 w-full" />
-                            <Skeleton className="h-4 w-full" />
-                            <Skeleton className="h-4 w-4/5" />
-                        </div>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    );
-}
 
 export default function OptimizationTab({ state, onProfileSwitchClick }: OptimizationTabProps) {
 
   const activeProfileData = state.profiles[state.activeProfile];
   
-  const greenScore = state.odometer > 0 ? state.odometer * 0.12 : 0; // 120g CO2 saved per km vs average ICE car
+  const greenScore = state.odometer > 0 ? state.odometer * 120 : 0; // 120g CO2 saved per km vs average ICE car
 
   const defaultAcImpact = {
     rangeImpactKm: state.acOn ? -2.5 : 2.5,
@@ -116,7 +88,7 @@ export default function OptimizationTab({ state, onProfileSwitchClick }: Optimiz
                 </CardContent>
             </Card>
             
-             <WeatherImpactForecast data={state.weatherImpact} />
+             <GreenScoreCard score={greenScore} />
 
 
             <Card className="p-4 row-start-3 md:row-start-auto">
