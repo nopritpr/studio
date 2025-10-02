@@ -1,6 +1,5 @@
 import {genkit} from 'genkit';
-import {groq} from 'genkitx-groq';
-import {gemma7b} from 'genkitx-groq';
+import {groq, gemma7b} from 'genkitx-groq';
 
 export const ai = genkit({
   plugins: [
