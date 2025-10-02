@@ -46,10 +46,11 @@ const GreenScoreCard = ({ score }: { score: number }) => {
     <Card className="flex flex-col">
       <CardHeader>
         <CardTitle className="text-sm font-headline flex items-center gap-2">
-          <Leaf className="w-4 h-4 text-green-500" />Green Score
+          <Leaf className="w-4 h-4 text-green-500" />
+          Green Score
         </CardTitle>
         <p className="text-xs text-muted-foreground -mt-2">
-          Estimated CO2 saved vs. a standard gasoline car.
+          A linear regression model estimates CO2 savings based on distance driven versus a standard gasoline car&apos;s emissions.
         </p>
       </CardHeader>
       <CardContent className="flex-grow flex flex-col items-center justify-center text-center">

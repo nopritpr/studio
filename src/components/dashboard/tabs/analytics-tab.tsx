@@ -86,6 +86,7 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-sm font-headline flex items-center gap-2"><span className="font-bold text-base">₹</span>Cost Savings</CardTitle>
+                        <p className="text-xs text-muted-foreground -mt-2">A simple cost model compares the running cost of an EV against a comparable gasoline car.</p>
                     </CardHeader>
                     <CardContent className="text-center">
                         <p className="text-2xl lg:text-3xl font-bold text-green-400 font-headline">₹{Math.round(savings)}</p>
