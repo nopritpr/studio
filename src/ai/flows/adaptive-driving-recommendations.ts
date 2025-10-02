@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { gemma } from 'genkitx-groq';
 
 const DrivingRecommendationInputSchema = z.object({
   drivingStyle: z
@@ -49,7 +50,7 @@ const adaptiveDrivingRecommendationsPrompt = ai.definePrompt({
   input: {schema: DrivingRecommendationInputSchema},
   output: {schema: DrivingRecommendationOutputSchema},
   config: {
-    model: 'gemini-pro',
+    model: gemma,
   },
   prompt: `You are an AI assistant that provides adaptive driving recommendations to electric vehicle (EV) drivers to improve energy efficiency and extend driving range.
 
