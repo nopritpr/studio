@@ -42,9 +42,9 @@ const prompt = ai.definePrompt({
 
 Analyze the following driving data to determine the driver's driving style and provide 3-5 actionable recommendations to improve their driving habits:
 
-Speed History: {{{speedHistory}}}
-Acceleration History: {{{accelerationHistory}}}
-Drive Mode History: {{{driveModeHistory}}}
+Speed History: {{{json speedHistory}}}
+Acceleration History: {{{json accelerationHistory}}}
+Drive Mode History: {{{json driveModeHistory}}}
 Eco Score: {{{ecoScore}}}
 
 Based on this data, create a short profile describing the driver's style, and provide 3-5 actionable recommendations to improve their driving habits.`,

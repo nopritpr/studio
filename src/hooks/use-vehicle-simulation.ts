@@ -79,9 +79,7 @@ export function useVehicleSimulation() {
   const callSohForecast = useCallback(async () => {
     const currentState = stateRef.current;
     if (currentState.sohHistory.length < 1) return;
-    if (Date.now() - lastSohCheck.current < 60000 && currentState.sohForecast.length > 0) return; // run every 60s, but always run first time
-    lastSohCheck.current = Date.now();
-
+    
     try {
       const soh = await forecastSoh({
         historicalData: currentState.sohHistory,
@@ -96,13 +94,10 @@ export function useVehicleSimulation() {
 
   const callFatigueMonitor = useCallback(async () => {
     const currentState = stateRef.current;
-    if (Date.now() - lastFatigueCheck.current < 20000) return; 
     if (currentState.speed < 10) { 
         if (currentState.fatigueWarning) setState({ fatigueWarning: null, fatigueLevel: 0 });
         return;
     };
-
-    lastFatigueCheck.current = Date.now();
 
     try {
         const fatigueResult = await monitorDriverFatigue({
@@ -126,7 +121,7 @@ export function useVehicleSimulation() {
     }
   }, []);
 
-  const callAI = useCallback(async () => {
+  const callDrivingInsights = useCallback(async () => {
     const currentState = stateRef.current;
      if (
       currentState.batterySOC === null ||
@@ -143,9 +138,6 @@ export function useVehicleSimulation() {
         }
         return;
     }
-
-    if (Date.now() - lastAiCall.current < 10000) return;
-    lastAiCall.current = Date.now();
 
     try {
       const [rec, style, range] = await Promise.all([
@@ -498,6 +490,35 @@ export function useVehicleSimulation() {
     calculateDynamicRange();
   }, [state.batterySOC, state.acOn, state.acTemp, state.driveMode, state.passengers, state.goodsInBoot, state.outsideTemp, calculateDynamicRange]);
 
+  // AI Timers
+  useEffect(() => {
+    const aiTimer = setInterval(() => {
+        if (Date.now() - lastAiCall.current > 10000) {
+            callDrivingInsights();
+            lastAiCall.current = Date.now();
+        }
+    }, 10000);
+
+    const fatigueTimer = setInterval(() => {
+        if (Date.now() - lastFatigueCheck.current > 5000) {
+            callFatigueMonitor();
+            lastFatigueCheck.current = Date.now();
+        }
+    }, 5000);
+    
+    const sohTimer = setInterval(() => {
+        if (Date.now() - lastSohCheck.current > 60000) {
+            callSohForecast();
+            lastSohCheck.current = Date.now();
+        }
+    }, 60000);
+
+    return () => {
+      clearInterval(aiTimer);
+      clearInterval(fatigueTimer);
+      clearInterval(sohTimer);
+    };
+  }, [callDrivingInsights, callFatigueMonitor, callSohForecast]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -517,22 +538,15 @@ export function useVehicleSimulation() {
     
     requestRef.current = requestAnimationFrame(updateVehicleState);
     
-    const aiTimer = setInterval(callAI, 10000);
-    const fatigueTimer = setInterval(callFatigueMonitor, 5000);
-    const sohTimer = setInterval(callSohForecast, 60000);
-
     // Initial calls for AI features
     callSohForecast();
-    callAI();
+    callDrivingInsights();
     callFatigueMonitor();
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
-      clearInterval(aiTimer);
-      clearInterval(fatigueTimer);
-      clearInterval(sohTimer);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
