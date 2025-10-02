@@ -402,11 +402,10 @@ export function useVehicleSimulation() {
     triggerIdlePrediction();
     triggerAcImpactForecast();
 
-    const isFatigueCheckRunning = { current: false };
-    const triggerFatigueCheck = async () => {
+    const fatigueCheckInterval = setInterval(async () => {
+        const isFatigueCheckRunning = { current: false };
         if (isFatigueCheckRunning.current) return;
         isFatigueCheckRunning.current = true;
-
         try {
             const currentState = vehicleStateRef.current;
             if (currentState.speed < 10) { // Don't check when stationary or slow
@@ -432,7 +431,7 @@ export function useVehicleSimulation() {
         } finally {
             isFatigueCheckRunning.current = false;
         }
-    };
+    }, 5000);
 
 
     const idlePredictionInterval = setInterval(() => {
@@ -443,8 +442,6 @@ export function useVehicleSimulation() {
         }
       }
     }, 5000);
-
-    const fatigueCheckInterval = setInterval(triggerFatigueCheck, 5000);
   
     return () => {
       clearInterval(idlePredictionInterval);
@@ -529,7 +526,3 @@ export function useVehicleSimulation() {
     toggleGoodsInBoot,
   };
 }
-
-    
-
-    
