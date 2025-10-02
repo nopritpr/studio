@@ -360,7 +360,7 @@ export function useVehicleSimulation() {
     const energyUsedWh = WhPerKm * distanceTraveledKm;
     
     // Apply a multiplier to make the battery drain faster for demos
-    const drainMultiplier = 2.5; 
+    const drainMultiplier = 5.0; 
     let socUsed = (energyUsedWh / (prevState.packNominalCapacity_kWh * 1000)) * 100 * drainMultiplier;
 
     let instantPower = newSpeedKmh > 0 ? (WhPerKm * newSpeedKmh) / 1000 : 0;
