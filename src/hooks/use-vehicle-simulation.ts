@@ -9,6 +9,7 @@ import { getDrivingRecommendation, type DrivingRecommendationInput } from '@/ai/
 import { analyzeDrivingStyle, type AnalyzeDrivingStyleInput } from '@/ai/flows/driver-profiling';
 import { forecastSoh, type SohForecastInput } from '@/ai/flows/soh-forecast-flow';
 import { monitorDriverFatigue, type DriverFatigueInput } from '@/ai/flows/driver-fatigue-monitor';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const keys: Record<string, boolean> = {
   ArrowUp: false,
@@ -264,6 +265,7 @@ export function useVehicleSimulation() {
     };
 
     try {
+        console.log("Requesting driving recommendation with input:", recInput);
         const rec = await getDrivingRecommendation(recInput);
         setAiState({
             drivingRecommendation: rec.recommendation,
@@ -281,6 +283,7 @@ export function useVehicleSimulation() {
         ecoScore: currentState.ecoScore,
     };
     try {
+        console.log("Requesting driving style analysis with input:", styleInput);
         const style = await analyzeDrivingStyle(styleInput);
         setAiState({
             drivingStyle: style.drivingStyle,
@@ -288,14 +291,17 @@ export function useVehicleSimulation() {
         });
     } catch (error) {
         console.error("Error calling analyzeDrivingStyle:", error);
+        setAiState({ drivingStyle: 'Style analysis unavailable.', drivingStyleRecommendations: [] });
     }
 
     const sohInput: SohForecastInput = { historicalData: currentState.sohHistory };
     try {
+        console.log("Requesting SOH forecast with input:", sohInput);
         const soh = await forecastSoh(sohInput);
         if (soh && soh.length > 0) setAiState({ sohForecast: soh });
     } catch (error) {
         console.error("Error calling forecastSoh:", error);
+        setAiState({ sohForecast: [] });
     }
     
     const fatigueInput: DriverFatigueInput = {
@@ -305,6 +311,7 @@ export function useVehicleSimulation() {
         harshAccelerationEvents: currentState.styleMetrics.harshAccel,
     };
     try {
+        console.log("Requesting driver fatigue monitoring with input:", fatigueInput);
         const fatigueResult = await monitorDriverFatigue(fatigueInput);
         let newFatigueLevel = fatigueResult.isFatigued ? fatigueResult.confidence : 1 - fatigueResult.confidence;
         let newFatigueWarning = currentAiState.fatigueWarning;
@@ -318,6 +325,7 @@ export function useVehicleSimulation() {
         setAiState({ fatigueLevel: newFatigueLevel, fatigueWarning: newFatigueWarning });
     } catch (error) {
         console.error("Error calling monitorDriverFatigue:", error);
+        setAiState({ fatigueLevel: 0, fatigueWarning: null });
     }
 
     toast({ title: 'AI Insights Refreshed!', variant: 'default' });
@@ -370,8 +378,9 @@ export function useVehicleSimulation() {
     let newSOC = prevState.batterySOC;
 
     if (prevState.isCharging) {
-      const chargePerSecond = 100 / (prevState.batteryCapacity_kWh * 3600 / EV_CONSTANTS.chargeRate_kW);
-       newSOC += chargePerSecond * timeDelta;
+      // 1% per 5 seconds is 0.2% per second
+      const chargePerSecond = 0.2;
+      newSOC += chargePerSecond * timeDelta;
     } else {
       const energyChange_kWh = netPower_kW * (timeDelta / 3600);
       const socChange = (energyChange_kWh / prevState.packNominalCapacity_kWh) * 100;
@@ -464,3 +473,5 @@ export function useVehicleSimulation() {
     refreshAiInsights,
   };
 }
+
+    
