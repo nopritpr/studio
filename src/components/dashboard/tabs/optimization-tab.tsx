@@ -38,12 +38,14 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
   const insights = useMemo(() => {
     const allInsights = [];
     
-    allInsights.push({
-        icon: '💡',
-        title: 'Live Tip',
-        description: "Driving good",
-        justification: "This is a temporary message to check if the UI is updating correctly.",
-    });
+    if (state.drivingRecommendation) {
+        allInsights.push({
+            icon: '💡',
+            title: 'Live Tip',
+            description: state.drivingRecommendation,
+            justification: state.drivingRecommendationJustification,
+        });
+    }
 
     if (state.drivingStyleRecommendations) {
         state.drivingStyleRecommendations.slice(0, 1).forEach(rec => { // Only show top 1 style recommendation
@@ -56,7 +58,7 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
         });
     }
     return allInsights;
-  }, [state.drivingStyleRecommendations]);
+  }, [state.drivingRecommendation, state.drivingRecommendationJustification, state.drivingStyleRecommendations]);
   
   const activeProfileData = state.profiles[state.activeProfile];
   
@@ -120,18 +122,18 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
                 </CardContent>
             </Card>
 
-            <Card className="p-4">
-                 <CardHeader className="p-4 pb-2">
+            <Card className="p-4 flex flex-col">
+                 <CardHeader className="p-0 pb-2">
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><BrainCircuit className="w-4 h-4"/>AI Insights & Controls</CardTitle>
-                    <p className="text-xs text-muted-foreground -mt-2">Classification model analyzing driving behavior for tips.</p>
+                    <p className="text-xs text-muted-foreground">Classification model analyzing driving behavior for tips.</p>
                 </CardHeader>
-                <CardContent className="space-y-4 p-4 pt-2">
-                    <div className="text-xs grid grid-cols-1 gap-2 mb-4 h-32 overflow-y-auto pr-2">
+                <CardContent className="flex-1 flex flex-col p-0 pt-2 min-h-0">
+                    <div className="text-xs grid grid-cols-1 gap-2 flex-grow overflow-y-auto pr-2">
                         {insights.length > 0 ? insights.map((insight, i) => (
                            <InsightItem key={i} {...insight} />
                         )) : <div className="h-full flex items-center justify-center"><p className="text-muted-foreground text-center">No insights available. Drive to generate tips.</p></div> }
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t">
                         <label htmlFor="stabilizer-toggle" className="text-sm">Prediction Stabilizer</label>
                         <Switch id="stabilizer-toggle" checked={state.stabilizerEnabled} onCheckedChange={onStabilizerToggle} />
                     </div>
