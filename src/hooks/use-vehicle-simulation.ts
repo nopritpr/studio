@@ -366,16 +366,8 @@ export function useVehicleSimulation() {
         idleStartTimeRef.current = now;
         lastIdleSocRef.current = prevState.batterySOC;
       }
-      
-      const idleDurationSeconds = (now - idleStartTimeRef.current) / 1000;
-      if (idleDurationSeconds > 3 && !idleTimerRef.current) {
-        // Trigger prediction immediately when idle condition is met and then set interval
-        triggerIdlePrediction();
-        idleTimerRef.current = setInterval(triggerIdlePrediction, 10000); // Re-predict every 10 seconds while idle
-      }
-
       // Apply phantom drain - accelerated for demo
-      const basePhantomDrainPerHour = 2.0; // 2.0% per hour for demo
+      const basePhantomDrainPerHour = 0.25; 
       let totalDrainPerHour = basePhantomDrainPerHour;
 
       // Add A/C drain
@@ -391,10 +383,6 @@ export function useVehicleSimulation() {
       newSOC -= totalDrainPerSecond * timeDelta;
       
     } else {
-      if (idleTimerRef.current) {
-        clearInterval(idleTimerRef.current);
-        idleTimerRef.current = null;
-      }
       if (idleStartTimeRef.current !== null && lastIdleSocRef.current !== null) {
         // Vehicle was idle, now it's not. Log the idle period.
         const idleDurationMinutes = (now - idleStartTimeRef.current) / 60000;
@@ -494,12 +482,40 @@ export function useVehicleSimulation() {
     
     setVehicleState(newVehicleState);
     requestRef.current = requestAnimationFrame(updateVehicleState);
-  }, [triggerIdlePrediction]);
+  }, []);
 
   // Effect for dynamic range calculation based on state changes
   useEffect(() => {
     calculateDynamicRange();
   }, [vehicleState.batterySOC, vehicleState.acOn, vehicleState.acTemp, vehicleState.driveMode, vehicleState.passengers, vehicleState.goodsInBoot, vehicleState.outsideTemp, calculateDynamicRange]);
+
+
+  useEffect(() => {
+    // This is the definitive fix.
+    // 1. We define a stable function to call the prediction.
+    const runPrediction = async () => {
+      const currentState = vehicleStateRef.current;
+      const isIdle = currentState.speed === 0 && !currentState.isCharging;
+      if (isIdle) {
+        await triggerIdlePrediction();
+      } else {
+        // If not idle, clear the prediction
+        setAiState({ idleDrainPrediction: null });
+      }
+    };
+
+    // 2. We call it immediately on component load.
+    runPrediction();
+
+    // 3. We set up an interval to call it repeatedly.
+    const interval = setInterval(runPrediction, 5000); // Check every 5 seconds
+
+    // 4. We clean up the interval when the component unmounts.
+    return () => clearInterval(interval);
+    
+    // The dependency array is empty to ensure this effect runs only once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [triggerIdlePrediction]);
 
   // Effect for main simulation loop and keyboard listeners
   useEffect(() => {
@@ -524,7 +540,6 @@ export function useVehicleSimulation() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
-      if (idleTimerRef.current) clearInterval(idleTimerRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
