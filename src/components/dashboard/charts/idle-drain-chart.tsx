@@ -95,5 +95,3 @@ export default function IdleDrainChart({ data }: IdleDrainChartProps) {
     </ChartContainer>
   );
 }
-
-    

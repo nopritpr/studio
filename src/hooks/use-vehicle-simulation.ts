@@ -545,5 +545,3 @@ export function useVehicleSimulation() {
     refreshAiInsights,
   };
 }
-
-    

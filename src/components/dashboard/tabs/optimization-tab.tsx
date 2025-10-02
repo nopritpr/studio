@@ -98,6 +98,18 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
                 </CardContent>
             </Card>
             
+            <Card className="flex flex-col items-center justify-center">
+                <CardHeader className="items-center">
+                    <CardTitle className="text-sm font-headline flex items-center gap-2"><Leaf className="w-4 h-4"/>Green Score</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                    <p className="text-5xl font-bold text-green-400 font-headline">
+                        {greenScore.toFixed(1)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">kg CO₂ saved vs ICE</p>
+                </CardContent>
+            </Card>
+
             <Card className="p-4">
                 <CardHeader className="flex-row items-center justify-between p-0 mb-2">
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><User className="w-4 h-4"/>User Profile</CardTitle>
@@ -110,18 +122,6 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
                         <ProfileDetail label="Phone" value={activeProfileData?.phone} />
                         <ProfileDetail label="Age" value={activeProfileData?.age} />
                     </div>
-                </CardContent>
-            </Card>
-
-            <Card className="flex flex-col items-center justify-center">
-                <CardHeader className="items-center">
-                    <CardTitle className="text-sm font-headline flex items-center gap-2"><Leaf className="w-4 h-4"/>Green Score</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                    <p className="text-5xl font-bold text-green-400 font-headline">
-                        {greenScore.toFixed(1)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">kg CO₂ saved vs ICE</p>
                 </CardContent>
             </Card>
 
@@ -166,5 +166,3 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
         </div>
     );
 }
-
-    
