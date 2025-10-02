@@ -268,8 +268,7 @@ export function useVehicleSimulation() {
 
   const idleStartTimeRef = useRef<number | null>(null);
 
-  const isWeatherImpactRunning = useRef(false);
-  const triggerWeatherImpactForecast = useCallback(async (forecastData: FiveDayForecast) => {
+  async function triggerWeatherImpactForecast(forecastData: FiveDayForecast) {
     if (isWeatherImpactRunning.current) return;
 
     if (!forecastData) {
@@ -294,7 +293,7 @@ export function useVehicleSimulation() {
     } finally {
         isWeatherImpactRunning.current = false;
     }
-  }, []);
+  }
 
   const updateVehicleState = useCallback(() => {
     const prevState = vehicleStateRef.current;
@@ -362,7 +361,7 @@ export function useVehicleSimulation() {
     const energyUsedWh = WhPerKm * distanceTraveledKm;
     
     // Apply a multiplier to make the battery drain faster for demos
-    const drainMultiplier = 1.2; 
+    const drainMultiplier = 2.5; 
     const socUsed = (energyUsedWh / (prevState.packNominalCapacity_kWh * 1000)) * 100 * drainMultiplier;
 
     let instantPower = newSpeedKmh > 0 ? (WhPerKm * newSpeedKmh) / 1000 : 0;
@@ -453,7 +452,7 @@ export function useVehicleSimulation() {
     if (forecast) {
       triggerWeatherImpactForecast(forecast);
     }
-  }, [vehicleState.weatherForecast, triggerWeatherImpactForecast]);
+  }, [vehicleState.weatherForecast]);
 
 
   useEffect(() => {
