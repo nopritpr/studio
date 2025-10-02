@@ -22,48 +22,26 @@ function stateReducer(state: VehicleState, action: Partial<VehicleState>): Vehic
 }
 
 const generateInitialSohHistory = (): SohHistoryEntry[] => {
-    const history: SohHistoryEntry[] = [];
-    const now = new Date();
-    const fourYearsAgo = new Date(now.setFullYear(now.getFullYear() - 4));
-    let currentOdometer = 80000; // Starting from 4 years ago
-    let currentCycleCount = 200;
-    let currentSoh = 92;
-
-    for (let i = 0; i < 8; i++) {
-        history.push({
-            odometer: currentOdometer,
-            cycleCount: currentCycleCount,
-            avgBatteryTemp: 25 + (Math.random() - 0.5) * 5,
-            soh: currentSoh,
-            ecoPercent: 60,
-            cityPercent: 30,
-            sportsPercent: 10,
-        });
-        currentOdometer -= 10000;
-        currentCycleCount -= 25;
-        currentSoh += (Math.random() * 0.5 + 0.5); // SOH increases as we go back in time
-    }
-    
-    // Set the very first entry to be at 0km and 100% SOH
-    history.push({
-        odometer: 0,
-        cycleCount: 0,
-        avgBatteryTemp: 25,
-        soh: 100,
-        ecoPercent: 100,
-        cityPercent: 0,
-        sportsPercent: 0,
-    });
-
-    return history.reverse(); // oldest first
+  // For a new car, start with a single entry at 0.
+  return [
+    {
+      odometer: 0,
+      cycleCount: 0,
+      avgBatteryTemp: 25,
+      soh: 100,
+      ecoPercent: 100,
+      cityPercent: 0,
+      sportsPercent: 0,
+    },
+  ];
 };
 
 const initialState = {
     ...defaultState,
     sohHistory: generateInitialSohHistory(),
-    odometer: 80000,
-    packSOH: 92,
-    equivalentFullCycles: 200,
+    odometer: 0,
+    packSOH: 100,
+    equivalentFullCycles: 0,
 };
 
 
@@ -496,9 +474,6 @@ export function useVehicleSimulation() {
     toggleGoodsInBoot,
   };
 }
-
-    
-
     
 
     
