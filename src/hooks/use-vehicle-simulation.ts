@@ -268,11 +268,10 @@ export function useVehicleSimulation() {
 
   const idleStartTimeRef = useRef<number | null>(null);
 
-  async function triggerWeatherImpactForecast(forecastData: FiveDayForecast) {
-    if (isWeatherImpactRunning.current) return;
-
-    if (!forecastData) {
-        return;
+  const isWeatherImpactRunning = useRef(false);
+  async function triggerWeatherImpactForecast(forecastData: FiveDayForecast | null) {
+    if (isWeatherImpactRunning.current || !forecastData) {
+      return;
     }
     isWeatherImpactRunning.current = true;
     try {
@@ -362,7 +361,7 @@ export function useVehicleSimulation() {
     
     // Apply a multiplier to make the battery drain faster for demos
     const drainMultiplier = 2.5; 
-    const socUsed = (energyUsedWh / (prevState.packNominalCapacity_kWh * 1000)) * 100 * drainMultiplier;
+    let socUsed = (energyUsedWh / (prevState.packNominalCapacity_kWh * 1000)) * 100 * drainMultiplier;
 
     let instantPower = newSpeedKmh > 0 ? (WhPerKm * newSpeedKmh) / 1000 : 0;
     if (currentAcceleration < -EV_CONSTANTS.gentleRegenBrakeRate) {
@@ -374,11 +373,11 @@ export function useVehicleSimulation() {
       const chargePerSecond = 1 / 5;
       newSOC += chargePerSecond * timeDelta;
     } else if (!isActuallyIdle) {
-      if (currentAcceleration < -EV_CONSTANTS.gentleRegenBrakeRate) { // Strong regen
-        newSOC += socUsed * EV_CONSTANTS.regenEfficiency;
-      } else {
-        newSOC -= socUsed;
+       // During deceleration (regen), reduce energy consumption instead of adding to SOC
+      if (currentAcceleration < 0) {
+        socUsed *= (1 - EV_CONSTANTS.regenEfficiency); // Reduce drain
       }
+      newSOC -= socUsed;
     }
     newSOC = Math.max(0, Math.min(100, newSOC));
     
