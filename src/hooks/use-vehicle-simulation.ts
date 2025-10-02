@@ -268,7 +268,6 @@ export function useVehicleSimulation() {
 
   const idleStartTimeRef = useRef<number | null>(null);
 
-  const isWeatherImpactRunning = useRef(false);
   async function triggerWeatherImpactForecast(forecastData: FiveDayForecast | null) {
     if (isWeatherImpactRunning.current || !forecastData) {
       return;
@@ -293,6 +292,39 @@ export function useVehicleSimulation() {
         isWeatherImpactRunning.current = false;
     }
   }
+
+  const isFatigueCheckRunning = useRef(false);
+  async function triggerFatigueCheck() {
+      if (isFatigueCheckRunning.current) return;
+      isFatigueCheckRunning.current = true;
+
+      try {
+          const currentState = vehicleStateRef.current;
+          if (currentState.speed < 10) { // Don't check when stationary or slow
+            isFatigueCheckRunning.current = false;
+            return;
+          }
+          const fatigueInput: DriverFatigueInput = {
+              speedHistory: currentState.speedHistory.slice(0, 60),
+              accelerationHistory: currentState.accelerationHistory.slice(0, 60),
+              // Simulate harsh events for now
+              harshBrakingEvents: currentState.accelerationHistory.slice(0, 60).filter(a => a < -3).length,
+              harshAccelerationEvents: currentState.accelerationHistory.slice(0, 60).filter(a => a > 3).length,
+          };
+          const fatigueResult = await monitorDriverFatigue(fatigueInput);
+          setAiState(prevState => ({
+              ...prevState,
+              fatigueLevel: fatigueResult.confidence,
+              fatigueWarning: fatigueResult.isFatigued ? fatigueResult.reasoning : null,
+          }));
+
+      } catch (error) {
+          console.error("Error calling monitorDriverFatigue:", error);
+      } finally {
+          isFatigueCheckRunning.current = false;
+      }
+  }
+
 
   const updateVehicleState = useCallback(() => {
     const prevState = vehicleStateRef.current;
@@ -352,14 +384,12 @@ export function useVehicleSimulation() {
 
     const distanceTraveledKm = newSpeedKmh * (timeDelta / 3600);
     
-    // This is the core logic for energy consumption based on predicted range
     const WhPerKm = prevState.predictedDynamicRange > 0
         ? (prevState.packNominalCapacity_kWh * (prevState.batterySOC / 100) * 1000) / prevState.predictedDynamicRange
         : EV_CONSTANTS.baseConsumption;
     
     const energyUsedWh = WhPerKm * distanceTraveledKm;
     
-    // Apply a multiplier to make the battery drain faster for demos
     const drainMultiplier = 5.0; 
     let socUsed = (energyUsedWh / (prevState.packNominalCapacity_kWh * 1000)) * 100 * drainMultiplier;
 
@@ -373,7 +403,6 @@ export function useVehicleSimulation() {
       const chargePerSecond = 1 / 5;
       newSOC += chargePerSecond * timeDelta;
     } else if (!isActuallyIdle) {
-       // During deceleration (regen), reduce energy consumption instead of adding to SOC
       if (currentAcceleration < 0) {
         socUsed *= (1 - EV_CONSTANTS.regenEfficiency); // Reduce drain
       }
@@ -440,16 +469,46 @@ export function useVehicleSimulation() {
         }
       }
     }, 5000);
+
+    const fatigueCheckInterval = setInterval(triggerFatigueCheck, 5000);
   
     return () => {
       clearInterval(idlePredictionInterval);
+      clearInterval(fatigueCheckInterval);
     };
   }, [triggerIdlePrediction, triggerAcImpactForecast]);
+
+  const isWeatherImpactRunning = useRef(false);
 
   useEffect(() => {
     const forecast = vehicleState.weatherForecast;
     if (forecast) {
       triggerWeatherImpactForecast(forecast);
+    }
+
+    async function triggerWeatherImpactForecast(forecastData: FiveDayForecast | null) {
+      if (isWeatherImpactRunning.current || !forecastData) {
+        return;
+      }
+      isWeatherImpactRunning.current = true;
+      try {
+        const input: GetWeatherImpactInput = {
+          currentSOC: vehicleStateRef.current.batterySOC,
+          initialRange: vehicleStateRef.current.initialRange,
+          forecast: forecastData.list.map(item => ({
+            temp: item.main.temp,
+            precipitation: item.weather[0].main,
+            windSpeed: item.wind.speed,
+          })).slice(0, 5)
+        };
+        const result = await getWeatherImpact(input);
+        setAiState({ weatherImpact: result });
+      } catch (error) {
+        console.error("Error calling getWeatherImpact:", error);
+        setAiState({ weatherImpact: null });
+      } finally {
+          isWeatherImpactRunning.current = false;
+      }
     }
   }, [vehicleState.weatherForecast]);
 
