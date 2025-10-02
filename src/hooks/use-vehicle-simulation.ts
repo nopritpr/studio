@@ -345,6 +345,7 @@ export function useVehicleSimulation() {
 
   const lastIdleSocRef = useRef<number | null>(null);
   const idleStartTimeRef = useRef<number | null>(null);
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const updateVehicleState = useCallback(() => {
     const prevState = vehicleStateRef.current;
@@ -358,14 +359,21 @@ export function useVehicleSimulation() {
 
     let newSOC = prevState.batterySOC;
     
-    const isIdle = prevState.speed === 0 && !prevState.isCharging;
+    const isActuallyIdle = prevState.speed === 0 && !prevState.isCharging;
 
-    // Handle idle state and phantom drain
-    if (isIdle) {
+    if (isActuallyIdle) {
       if (idleStartTimeRef.current === null) {
         idleStartTimeRef.current = now;
         lastIdleSocRef.current = prevState.batterySOC;
       }
+      
+      const idleDurationSeconds = (now - idleStartTimeRef.current) / 1000;
+      if (idleDurationSeconds > 3 && !idleTimerRef.current) {
+        // Trigger prediction immediately when idle condition is met and then set interval
+        triggerIdlePrediction();
+        idleTimerRef.current = setInterval(triggerIdlePrediction, 10000); // Re-predict every 10 seconds while idle
+      }
+
       // Apply phantom drain - accelerated for demo
       const basePhantomDrainPerHour = 2.0; // 2.0% per hour for demo
       let totalDrainPerHour = basePhantomDrainPerHour;
@@ -383,6 +391,10 @@ export function useVehicleSimulation() {
       newSOC -= totalDrainPerSecond * timeDelta;
       
     } else {
+      if (idleTimerRef.current) {
+        clearInterval(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
       if (idleStartTimeRef.current !== null && lastIdleSocRef.current !== null) {
         // Vehicle was idle, now it's not. Log the idle period.
         const idleDurationMinutes = (now - idleStartTimeRef.current) / 60000;
@@ -434,7 +446,7 @@ export function useVehicleSimulation() {
     if (prevState.isCharging) {
       const chargePerSecond = 1 / 5; // 1% SOC per 5 seconds
       newSOC += chargePerSecond * timeDelta;
-    } else if (!isIdle) { // Only apply driving consumption if not idle
+    } else if (!isActuallyIdle) { // Only apply driving consumption if not idle
       const energyChange_kWh = netPower_kW * (timeDelta / 3600);
       const socChange = (energyChange_kWh / prevState.packNominalCapacity_kWh) * 100;
       newSOC -= socChange;
@@ -482,26 +494,14 @@ export function useVehicleSimulation() {
     
     setVehicleState(newVehicleState);
     requestRef.current = requestAnimationFrame(updateVehicleState);
-  }, []);
-
-  // Definitive fix for Idle Drain Prediction
-  useEffect(() => {
-    // Run prediction immediately on load
-    triggerIdlePrediction();
-
-    // Then run every 10 seconds
-    const intervalId = setInterval(() => {
-      triggerIdlePrediction();
-    }, 10000); 
-
-    return () => clearInterval(intervalId);
   }, [triggerIdlePrediction]);
 
-
+  // Effect for dynamic range calculation based on state changes
   useEffect(() => {
     calculateDynamicRange();
   }, [vehicleState.batterySOC, vehicleState.acOn, vehicleState.acTemp, vehicleState.driveMode, vehicleState.passengers, vehicleState.goodsInBoot, vehicleState.outsideTemp, calculateDynamicRange]);
 
+  // Effect for main simulation loop and keyboard listeners
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key in keys) { e.preventDefault(); keys[e.key] = true; }
@@ -524,6 +524,7 @@ export function useVehicleSimulation() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      if (idleTimerRef.current) clearInterval(idleTimerRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -545,5 +546,3 @@ export function useVehicleSimulation() {
     refreshAiInsights,
   };
 }
-
-    

@@ -66,12 +66,12 @@ Calculate the total hourly SOC drop based on these factors and provide a list of
 
 Example Calculation for one hour:
 - Base drain: 2.0%
-- Climate Control drain: If A/C is on, calculate its duty cycle. Duty Cycle = min(1, abs(outsideTemp - acTemp) / 10). A/C power is 1.5 kW. The percentage drop per hour is (1.5 kW * duty_cycle) / 75 kWh * 100.
+- Climate Control drain: If A/C is on, calculate its duty cycle. Duty Cycle = min(1, abs(outsideTemp - acTemp) / 10). A/C power is 1.5 kW. The percentage drop per hour is (1.5 * dutyCycle) / 75 * 100.
 - Total hourly drop = Base drain + Climate Control drain.
 
 For each hour from 1 to 8, calculate the new SOC by subtracting the total hourly drop from the previous hour's SOC. The starting SOC is the 'currentBatterySOC'.
 
-Return the result as a JSON object with the 'hourlyPrediction' key, containing an array of 8 objects, each with 'hour' and 'soc'.`,
+Return the result as a JSON object with the 'hourlyPrediction' key, containing an array of 8 objects, each with 'hour' and 'soc'. The SOC value should have at most one decimal place.`,
 });
 
 const predictiveIdleDrainFlow = ai.defineFlow(
@@ -85,5 +85,3 @@ const predictiveIdleDrainFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    
