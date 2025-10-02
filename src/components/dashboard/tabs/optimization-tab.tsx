@@ -38,16 +38,16 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
   const insights = useMemo(() => {
     const allInsights = [];
     
-    // Always show the default or live tip
-    allInsights.push({
-        icon: '💡',
-        title: 'Live Tip',
-        description: state.drivingRecommendation || 'Start driving to get recommendations.',
-        justification: state.drivingRecommendationJustification,
-    });
+    if (state.drivingRecommendation) {
+        allInsights.push({
+            icon: '💡',
+            title: 'Live Tip',
+            description: state.drivingRecommendation,
+            justification: state.drivingRecommendationJustification,
+        });
+    }
 
     if (state.drivingStyleRecommendations && state.drivingStyleRecommendations.length > 0) {
-        // Add the first driving style recommendation if it exists
         allInsights.push({
             icon: '🎯',
             title: 'Driving Style',
