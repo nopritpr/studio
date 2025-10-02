@@ -401,17 +401,22 @@ export function useVehicleSimulation() {
   }, [vehicleState.batterySOC, vehicleState.acOn, vehicleState.acTemp, vehicleState.driveMode, vehicleState.passengers, vehicleState.goodsInBoot, vehicleState.outsideTemp, calculateDynamicRange]);
 
   useEffect(() => {
-    triggerAcImpactForecast(); // Initial call
+    // Run once on mount
+    triggerAcImpactForecast();
+    triggerIdlePrediction();
+
     const aiInterval = setInterval(() => {
-        const currentState = vehicleStateRef.current;
-        const isIdle = currentState.speed === 0 && !currentState.isCharging;
-        
-        if (isIdle) {
-            if (idleStartTimeRef.current && (Date.now() - idleStartTimeRef.current > 3000)) {
-                triggerIdlePrediction();
-            }
+      const currentState = vehicleStateRef.current;
+      const isIdle = currentState.speed === 0 && !currentState.isCharging;
+      
+      triggerAcImpactForecast();
+
+      if (isIdle) {
+        // Only trigger if it has been idle for a bit
+        if (idleStartTimeRef.current && (Date.now() - idleStartTimeRef.current > 3000)) {
+            triggerIdlePrediction();
         }
-        triggerAcImpactForecast();
+      }
     }, 5000); // Run every 5 seconds
 
     return () => clearInterval(aiInterval);

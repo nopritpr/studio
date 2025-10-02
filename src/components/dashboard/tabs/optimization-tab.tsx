@@ -47,6 +47,11 @@ export default function OptimizationTab({ state, onProfileSwitchClick }: Optimiz
   
   const greenScore = state.odometer > 0 ? state.odometer * 0.12 : 0; // 120g CO2 saved per km vs average ICE car
 
+  const defaultAcImpact = {
+    rangeImpactKm: state.acOn ? -2.5 : 2.5,
+    recommendation: state.acOn ? "Turn off A/C to save range." : "Turning on A/C may reduce range."
+  };
+
   return (
         <div className="h-full grid grid-cols-3 grid-rows-2 gap-4 min-h-0">
             <Card className="flex flex-col items-center justify-center">
@@ -113,9 +118,10 @@ export default function OptimizationTab({ state, onProfileSwitchClick }: Optimiz
                                 recommendation={state.acUsageImpact.recommendation}
                             />
                         ) : (
-                             <div className="p-3 rounded-lg flex items-center justify-center gap-3 text-sm bg-muted/50 border border-border/50 h-full">
-                                <p className="text-xs text-muted-foreground text-center">Generating A/C impact analysis...</p>
-                            </div>
+                             <AcImpactDisplay 
+                                impact={defaultAcImpact.rangeImpactKm} 
+                                recommendation={defaultAcImpact.recommendation}
+                            />
                         )}
                     </div>
                 </CardContent>
