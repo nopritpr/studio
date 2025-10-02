@@ -83,7 +83,7 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
                 </CardHeader>
                 <CardContent className="text-center">
                     <p className="text-5xl font-bold text-green-400 font-headline">
-                        {((state.odometer || 0) * (120 - 50) / 1000).toFixed(1)}
+                        0.0
                     </p>
                     <p className="text-xs text-muted-foreground">kg CO₂ saved vs ICE</p>
                     <p className="text-xs text-muted-foreground text-center mt-2">Calculated based on odometer reading vs. average emissions of a gasoline car.</p>
