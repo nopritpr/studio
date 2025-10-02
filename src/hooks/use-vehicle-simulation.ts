@@ -401,6 +401,7 @@ export function useVehicleSimulation() {
   }, [vehicleState.batterySOC, vehicleState.acOn, vehicleState.acTemp, vehicleState.driveMode, vehicleState.passengers, vehicleState.goodsInBoot, vehicleState.outsideTemp, calculateDynamicRange]);
 
   useEffect(() => {
+    triggerAcImpactForecast(); // Initial call
     const aiInterval = setInterval(() => {
         const currentState = vehicleStateRef.current;
         const isIdle = currentState.speed === 0 && !currentState.isCharging;
@@ -433,10 +434,6 @@ export function useVehicleSimulation() {
     window.addEventListener('keyup', handleKeyUp);
     
     requestRef.current = requestAnimationFrame(updateVehicleState);
-
-    // Initial AI calls
-    triggerIdlePrediction();
-    triggerAcImpactForecast();
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
