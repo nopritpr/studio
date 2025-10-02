@@ -353,12 +353,17 @@ export function useVehicleSimulation() {
     }
 
     const distanceTraveledKm = newSpeedKmh * (timeDelta / 3600);
+    
+    // This is the core logic for energy consumption based on predicted range
     const WhPerKm = prevState.predictedDynamicRange > 0
         ? (prevState.packNominalCapacity_kWh * (prevState.batterySOC / 100) * 1000) / prevState.predictedDynamicRange
         : EV_CONSTANTS.baseConsumption;
     
     const energyUsedWh = WhPerKm * distanceTraveledKm;
-    const socUsed = (energyUsedWh / (prevState.packNominalCapacity_kWh * 1000)) * 100;
+    
+    // Apply a multiplier to make the battery drain faster for demos
+    const drainMultiplier = 1.2; 
+    const socUsed = (energyUsedWh / (prevState.packNominalCapacity_kWh * 1000)) * 100 * drainMultiplier;
 
     let instantPower = newSpeedKmh > 0 ? (WhPerKm * newSpeedKmh) / 1000 : 0;
     if (currentAcceleration < -EV_CONSTANTS.gentleRegenBrakeRate) {
