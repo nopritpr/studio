@@ -262,10 +262,10 @@ export function useVehicleSimulation() {
             goodsInBoot: currentState.goodsInBoot,
         };
         const drainResult = await predictIdleDrain(drainInput);
-        setAiState({ idleDrainPrediction: drainResult });
+        setAiState(prevState => ({ ...prevState, idleDrainPrediction: drainResult }));
     } catch (error) {
         console.error("Error calling predictIdleDrain:", error);
-        setAiState({ idleDrainPrediction: null });
+        setAiState(prevState => ({ ...prevState, idleDrainPrediction: null }));
     } finally {
         isIdlePredictionRunning.current = false;
     }
@@ -343,9 +343,7 @@ export function useVehicleSimulation() {
     toast({ title: 'AI Insights Refreshed!', variant: 'default' });
   }, [toast]);
 
-  const lastIdleSocRef = useRef<number | null>(null);
   const idleStartTimeRef = useRef<number | null>(null);
-  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const updateVehicleState = useCallback(() => {
     const prevState = vehicleStateRef.current;
@@ -364,7 +362,6 @@ export function useVehicleSimulation() {
     if (isActuallyIdle) {
       if (idleStartTimeRef.current === null) {
         idleStartTimeRef.current = now;
-        lastIdleSocRef.current = prevState.batterySOC;
       }
       // Apply phantom drain - accelerated for demo
       const basePhantomDrainPerHour = 0.25; 
@@ -383,17 +380,7 @@ export function useVehicleSimulation() {
       newSOC -= totalDrainPerSecond * timeDelta;
       
     } else {
-      if (idleStartTimeRef.current !== null && lastIdleSocRef.current !== null) {
-        // Vehicle was idle, now it's not. Log the idle period.
-        const idleDurationMinutes = (now - idleStartTimeRef.current) / 60000;
-        const socDrop = lastIdleSocRef.current - newSOC;
-        if (idleDurationMinutes > 1) { // Only log significant idle periods
-          const newIdlePeriod: IdlePeriod = { durationMinutes: idleDurationMinutes, socDrop: socDrop };
-          setVehicleState({ idleHistory: [...prevState.idleHistory, newIdlePeriod].slice(-20) });
-        }
-        idleStartTimeRef.current = null;
-        lastIdleSocRef.current = null;
-      }
+       idleStartTimeRef.current = null;
     }
 
 
@@ -491,30 +478,24 @@ export function useVehicleSimulation() {
 
 
   useEffect(() => {
-    // This is the definitive fix.
-    // 1. We define a stable function to call the prediction.
-    const runPrediction = async () => {
-      const currentState = vehicleStateRef.current;
-      const isIdle = currentState.speed === 0 && !currentState.isCharging;
-      if (isIdle) {
-        await triggerIdlePrediction();
-      } else {
-        // If not idle, clear the prediction
-        setAiState({ idleDrainPrediction: null });
-      }
-    };
+    const idleCheckInterval = setInterval(() => {
+        const currentState = vehicleStateRef.current;
+        const isIdle = currentState.speed === 0 && !currentState.isCharging;
+        
+        if (isIdle) {
+            // If it's been idle for 3 seconds, trigger the prediction
+            if (idleStartTimeRef.current && (Date.now() - idleStartTimeRef.current > 3000)) {
+                triggerIdlePrediction();
+            }
+        } else {
+            // If not idle, clear the prediction
+            if(aiStateRef.current.idleDrainPrediction !== null) {
+                setAiState({ idleDrainPrediction: null });
+            }
+        }
+    }, 5000); // Check every 5 seconds
 
-    // 2. We call it immediately on component load.
-    runPrediction();
-
-    // 3. We set up an interval to call it repeatedly.
-    const interval = setInterval(runPrediction, 5000); // Check every 5 seconds
-
-    // 4. We clean up the interval when the component unmounts.
-    return () => clearInterval(interval);
-    
-    // The dependency array is empty to ensure this effect runs only once on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => clearInterval(idleCheckInterval);
   }, [triggerIdlePrediction]);
 
   // Effect for main simulation loop and keyboard listeners

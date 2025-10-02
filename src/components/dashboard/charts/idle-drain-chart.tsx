@@ -11,9 +11,20 @@ import type { PredictiveIdleDrainOutput } from '@/ai/flows/predictive-idle-drain
 
 interface IdleDrainChartProps {
   data: PredictiveIdleDrainOutput | null;
+  currentSOC: number;
 }
 
-export default function IdleDrainChart({ data }: IdleDrainChartProps) {
+const getDefaultPrediction = (startSOC: number): PredictiveIdleDrainOutput => {
+  const hourlyPrediction = [];
+  let currentSOC = startSOC;
+  for (let i = 1; i <= 8; i++) {
+    currentSOC -= 0.5; // Default drain of 0.5% per hour
+    hourlyPrediction.push({ hour: i, soc: parseFloat(currentSOC.toFixed(1)) });
+  }
+  return { hourlyPrediction };
+};
+
+export default function IdleDrainChart({ data, currentSOC }: IdleDrainChartProps) {
   const chartConfig = {
     soc: {
       label: 'SOC (%)',
@@ -21,20 +32,25 @@ export default function IdleDrainChart({ data }: IdleDrainChartProps) {
     },
   };
 
-  if (!data || !data.hourlyPrediction || data.hourlyPrediction.length === 0) {
+  const displayData = data && data.hourlyPrediction && data.hourlyPrediction.length > 0
+    ? data
+    : getDefaultPrediction(currentSOC);
+    
+  if (!displayData || !displayData.hourlyPrediction || displayData.hourlyPrediction.length === 0) {
     return (
       <div className="w-full h-full flex items-center justify-center">
         <p className="text-sm text-muted-foreground text-center p-4">
-          Vehicle must be idle for a few seconds to generate prediction.
+          Generating forecast data...
         </p>
       </div>
     );
   }
 
+
   return (
     <ChartContainer config={chartConfig} className="w-full h-full">
       <AreaChart
-        data={data.hourlyPrediction}
+        data={displayData.hourlyPrediction}
         margin={{
           top: 10,
           right: 20,

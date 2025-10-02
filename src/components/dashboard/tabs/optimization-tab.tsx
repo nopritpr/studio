@@ -131,7 +131,7 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
                     <p className="text-xs text-muted-foreground -mt-2">Predicts battery loss over 8 hours while idle. Updates automatically.</p>
                 </CardHeader>
                 <CardContent className="p-0 flex-grow min-h-0">
-                    <IdleDrainChart data={state.idleDrainPrediction} />
+                    <IdleDrainChart data={state.idleDrainPrediction} currentSOC={state.batterySOC} />
                 </CardContent>
             </Card>
 
