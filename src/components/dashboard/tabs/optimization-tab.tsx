@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import EcoScoreGauge from "../charts/eco-score-gauge";
 import type { VehicleState, AiState } from "@/lib/types";
-import { Leaf, User, BrainCircuit, BarChart, Battery, RefreshCw, Hourglass } from "lucide-react";
+import { Leaf, User, BrainCircuit, BarChart, RefreshCw, Hourglass } from "lucide-react";
 import { useMemo, useState } from 'react';
 import IdleDrainChart from "../charts/idle-drain-chart";
 
@@ -94,22 +94,20 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
                     <div className="w-full h-full">
                         <EcoScoreGauge score={state.ecoScore} />
                     </div>
-                    <p className="text-xs text-muted-foreground text-center mt-2 px-2">Analyzes driving style, acceleration, and efficiency via a classification model.</p>
-                </CardContent>
-            </Card>
-            
-            <Card className="flex flex-col items-center justify-center">
-                <CardHeader className="items-center">
-                    <CardTitle className="text-sm font-headline flex items-center gap-2"><Leaf className="w-4 h-4"/>Green Score</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                    <p className="text-5xl font-bold text-green-400 font-headline">
-                        {greenScore.toFixed(1)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">kg CO₂ saved vs ICE</p>
+                    <p className="text-xs text-muted-foreground text-center mt-2 px-2">Analyzes driving style, acceleration, and efficiency.</p>
                 </CardContent>
             </Card>
 
+            <Card className="col-span-3 md:col-span-2 row-start-2 md:row-start-auto flex flex-col">
+                <CardHeader>
+                    <CardTitle className="text-sm font-headline flex items-center gap-2"><Hourglass className="w-4 h-4"/>Predictive Idle Drain</CardTitle>
+                    <p className="text-xs text-muted-foreground -mt-2">Predicts battery loss over 8 hours while idle. Updates automatically.</p>
+                </CardHeader>
+                <CardContent className="p-0 flex-grow min-h-0">
+                    <IdleDrainChart data={state.idleDrainPrediction} />
+                </CardContent>
+            </Card>
+            
             <Card className="p-4">
                 <CardHeader className="flex-row items-center justify-between p-0 mb-2">
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><User className="w-4 h-4"/>User Profile</CardTitle>
@@ -125,21 +123,23 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
                 </CardContent>
             </Card>
 
-            <Card className="col-span-3 md:col-span-2 flex flex-col">
-                <CardHeader>
-                    <CardTitle className="text-sm font-headline flex items-center gap-2"><Hourglass className="w-4 h-4"/>Predictive Idle Drain</CardTitle>
-                    <p className="text-xs text-muted-foreground -mt-2">Predicts battery loss over 8 hours while idle.</p>
+            <Card className="flex flex-col items-center justify-center">
+                <CardHeader className="items-center">
+                    <CardTitle className="text-sm font-headline flex items-center gap-2"><Leaf className="w-4 h-4"/>Green Score</CardTitle>
                 </CardHeader>
-                <CardContent className="p-0 flex-grow min-h-0">
-                    <IdleDrainChart data={state.idleDrainPrediction} />
+                <CardContent className="text-center">
+                    <p className="text-5xl font-bold text-green-400 font-headline">
+                        {greenScore.toFixed(1)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">kg CO₂ saved vs ICE</p>
                 </CardContent>
             </Card>
 
             <Card className="p-4 flex flex-col">
                 <CardHeader className="p-0 pb-2 flex-row justify-between items-center">
                     <div>
-                        <CardTitle className="text-sm font-headline flex items-center gap-2"><BrainCircuit className="w-4 h-4"/>AI Insights & Controls</CardTitle>
-                        <p className="text-xs text-muted-foreground">Classification model analyzing driving behavior for tips.</p>
+                        <CardTitle className="text-sm font-headline flex items-center gap-2"><BrainCircuit className="w-4 h-4"/>AI Driving Coach</CardTitle>
+                        <p className="text-xs text-muted-foreground">Live analysis of driving behavior for tips.</p>
                     </div>
                     <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={isRefreshing}>
                         <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />

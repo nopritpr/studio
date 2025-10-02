@@ -246,6 +246,34 @@ export function useVehicleSimulation() {
     setVehicleState({ range: predictedRange, rangePenalties: penalties });
   }, []);
 
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isIdlePredictionRunning = useRef(false);
+
+  const triggerIdlePrediction = useCallback(async () => {
+    if (isIdlePredictionRunning.current) return;
+    isIdlePredictionRunning.current = true;
+    
+    const currentState = vehicleStateRef.current;
+    const drainInput: PredictiveIdleDrainInput = {
+        currentBatterySOC: currentState.batterySOC,
+        acOn: currentState.acOn,
+        acTemp: currentState.acTemp,
+        outsideTemp: currentState.outsideTemp,
+        passengers: currentState.passengers,
+        goodsInBoot: currentState.goodsInBoot,
+    };
+    try {
+        const drainResult = await predictIdleDrain(drainInput);
+        setAiState({ idleDrainPrediction: drainResult });
+    } catch (error) {
+        console.error("Error calling predictIdleDrain:", error);
+        setAiState({ idleDrainPrediction: null });
+    } finally {
+        isIdlePredictionRunning.current = false;
+    }
+  }, []);
+
+
   const refreshAiInsights = useCallback(async () => {
     toast({ title: 'Refreshing AI Insights...', description: 'Please wait a moment.' });
     const currentState = vehicleStateRef.current;
@@ -314,27 +342,9 @@ export function useVehicleSimulation() {
         console.error("Error calling monitorDriverFatigue:", error);
         setAiState({ fatigueLevel: 0, fatigueWarning: null });
     }
-
-    const drainInput: PredictiveIdleDrainInput = {
-        currentBatterySOC: currentState.batterySOC,
-        acOn: currentState.acOn,
-        acTemp: currentState.acTemp,
-        outsideTemp: currentState.outsideTemp,
-        passengers: currentState.passengers,
-        goodsInBoot: currentState.goodsInBoot,
-    };
-    try {
-        const drainResult = await predictIdleDrain(drainInput);
-        setAiState({ idleDrainPrediction: drainResult });
-    } catch (error) {
-        console.error("Error calling predictIdleDrain:", error);
-        setAiState({ idleDrainPrediction: null });
-    }
-
     toast({ title: 'AI Insights Refreshed!', variant: 'default' });
   }, [toast]);
 
-  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastIdleSocRef = useRef<number | null>(null);
   const idleStartTimeRef = useRef<number | null>(null);
 
@@ -350,15 +360,28 @@ export function useVehicleSimulation() {
 
     let newSOC = prevState.batterySOC;
     
-    // Handle idle state and phantom drain
     const isIdle = prevState.speed === 0 && !prevState.isCharging;
+    if (isIdle) {
+        if (idleTimerRef.current === null) {
+            idleTimerRef.current = setTimeout(() => {
+                triggerIdlePrediction();
+            }, 3000); // Trigger after 3 seconds of being idle
+        }
+    } else {
+        if (idleTimerRef.current) {
+            clearTimeout(idleTimerRef.current);
+            idleTimerRef.current = null;
+        }
+    }
+
+    // Handle idle state and phantom drain
     if (isIdle) {
       if (idleStartTimeRef.current === null) {
         idleStartTimeRef.current = now;
         lastIdleSocRef.current = prevState.batterySOC;
       }
       // Apply phantom drain - accelerated for demo
-      const basePhantomDrainPerHour = 0.2 * 5; // 0.2% per hour, 5x speed
+      const basePhantomDrainPerHour = 0.2 * 10; // 0.2% per hour, 10x speed
       let totalDrainPerHour = basePhantomDrainPerHour;
 
       // Add A/C drain
@@ -473,7 +496,7 @@ export function useVehicleSimulation() {
     
     setVehicleState(newVehicleState);
     requestRef.current = requestAnimationFrame(updateVehicleState);
-  }, []);
+  }, [triggerIdlePrediction]);
 
   useEffect(() => {
     calculateDynamicRange();
@@ -502,6 +525,7 @@ export function useVehicleSimulation() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

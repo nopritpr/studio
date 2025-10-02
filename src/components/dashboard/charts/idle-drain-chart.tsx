@@ -25,7 +25,7 @@ export default function IdleDrainChart({ data }: IdleDrainChartProps) {
     return (
       <div className="w-full h-full flex items-center justify-center">
         <p className="text-sm text-muted-foreground text-center p-4">
-          Let the vehicle remain idle to generate a prediction. Then, click the refresh button on the AI Insights card.
+          Vehicle must be idle for a few seconds to generate a prediction.
         </p>
       </div>
     );
