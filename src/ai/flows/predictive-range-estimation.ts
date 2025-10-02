@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { gemma7b } from 'genkitx-groq';
 
 const PredictiveRangeInputSchema = z.object({
   drivingStyle: z
@@ -56,7 +57,7 @@ const prompt = ai.definePrompt({
   input: {schema: PredictiveRangeInputSchema},
   output: {schema: PredictiveRangeOutputSchema},
   config: {
-    model: 'gemini-pro',
+    model: gemma7b,
   },
   prompt: `You are an expert AI system that predicts the remaining range of an electric vehicle based on various factors. Your goal is to provide a more accurate range estimation than the standard one.
 

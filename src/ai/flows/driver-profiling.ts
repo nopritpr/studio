@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { gemma7b } from 'genkitx-groq';
 
 const AnalyzeDrivingStyleInputSchema = z.object({
   speedHistory: z.array(z.number()).describe('The history of the driver speed in km/h.'),
@@ -18,7 +19,7 @@ const AnalyzeDrivingStyleInputSchema = z.object({
   driveModeHistory: z.array(z.string()).describe('The history of the drive modes used.'),
   ecoScore: z.number().describe('The current eco score of the driver.'),
 });
-export type AnalyzeDrivingStyleInput = z.infer<typeof AnalyzeDrivingStyleInputSchema>;
+export type AnalyzeDrivingStyleInput = zinfer<typeof AnalyzeDrivingStyleInputSchema>;
 
 const AnalyzeDrivingStyleOutputSchema = z.object({
   drivingStyle: z.string().describe('A description of the drivers driving style.'),
@@ -35,7 +36,7 @@ const prompt = ai.definePrompt({
   input: {schema: AnalyzeDrivingStyleInputSchema},
   output: {schema: AnalyzeDrivingStyleOutputSchema},
   config: {
-    model: 'gemini-pro',
+    model: gemma7b,
   },
   prompt: `You are an expert driving coach who analyzes driving data and provides personalized recommendations to improve driving safety and efficiency.
 

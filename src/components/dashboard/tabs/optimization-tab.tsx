@@ -17,11 +17,11 @@ interface OptimizationTabProps {
 
 const InsightItem = ({ icon, title, description, justification }: { icon: React.ReactNode, title: string, description: string, justification?: string | null }) => (
   <div className="p-3 rounded-lg flex items-start gap-3 text-sm bg-muted/50 border border-border/50">
-    <div className="text-xl mt-1 text-primary">{icon}</div>
+    <div className="text-primary mt-1">{icon}</div>
     <div>
       <h5 className="font-semibold text-foreground">{title}</h5>
       <p className="text-muted-foreground leading-snug text-xs">{description}</p>
-      {justification && <p className="text-muted-foreground/80 leading-snug text-xs mt-1 fst-italic">Justification: {justification}</p>}
+      {justification && <p className="text-blue-400/80 leading-snug text-xs mt-1 italic">Justification: {justification}</p>}
     </div>
   </div>
 );
