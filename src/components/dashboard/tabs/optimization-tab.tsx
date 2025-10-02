@@ -31,7 +31,7 @@ const AcImpactDisplay = ({ impact, recommendation }: { impact: number, recommend
             <Wind size={16} />
             <h5 className="font-semibold text-foreground">A/C Impact</h5>
        </div>
-       <p className="text-xs text-muted-foreground -mt-1 mb-2">Predicted range change in the next hour.</p>
+       <p className="text-xs text-muted-foreground -mt-1 mb-2">A regression model predicts range change based on A/C settings and temperature.</p>
        <p className={`text-3xl font-bold font-headline ${colorClass}`}>
         {isGain ? '+' : '-'}{displayValue} km
        </p>
@@ -77,14 +77,14 @@ export default function OptimizationTab({ state, onProfileSwitchClick }: Optimiz
   return (
         <div className="h-full grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4 min-h-0">
             <Card className="flex flex-col items-center justify-center">
-                <CardHeader className="items-center pb-2">
+                <CardHeader className="items-center pb-2 text-center">
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><BarChart className="w-4 h-4"/>Eco-Driving Score</CardTitle>
+                    <p className="text-xs text-muted-foreground -mt-2 px-2">A scoring model analyzes speed, acceleration, and efficiency to rate driving style.</p>
                 </CardHeader>
                 <CardContent className="flex-grow w-48 h-48 flex flex-col items-center justify-center">
                     <div className="w-full h-full">
                         <EcoScoreGauge score={state.ecoScore} />
                     </div>
-                    <p className="text-xs text-muted-foreground text-center mt-2 px-2">Analyzes driving style, acceleration, and efficiency.</p>
                 </CardContent>
             </Card>
             
@@ -109,7 +109,7 @@ export default function OptimizationTab({ state, onProfileSwitchClick }: Optimiz
             <Card className="col-span-3 md:col-span-2 row-start-2 md:row-start-auto flex flex-col">
                 <CardHeader>
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><BrainCircuit className="w-4 h-4"/>Predictive Idle Drain</CardTitle>
-                    <p className="text-xs text-muted-foreground -mt-2">Predicts battery loss over 8 hours while idle. Updates automatically.</p>
+                    <p className="text-xs text-muted-foreground -mt-2">An energy consumption model forecasts battery loss over 8 hours based on current settings.</p>
                 </CardHeader>
                 <CardContent className="p-0 flex-grow min-h-0">
                     <IdleDrainChart data={state.idleDrainPrediction} currentSOC={state.batterySOC} />
@@ -117,11 +117,8 @@ export default function OptimizationTab({ state, onProfileSwitchClick }: Optimiz
             </Card>
 
             <Card className="p-4 flex flex-col">
-                 <CardHeader className="p-0 pb-2 flex-row justify-between items-center">
-                    <div>
-                        <CardTitle className="text-sm font-headline flex items-center gap-2"><Wind className="w-4 h-4"/>A/C Usage Impact</CardTitle>
-                         <p className="text-xs text-muted-foreground">Live forecast of range impact.</p>
-                    </div>
+                 <CardHeader className="p-0 pb-2">
+                    <CardTitle className="text-sm font-headline flex items-center gap-2"><Wind className="w-4 h-4"/>A/C Usage Impact</CardTitle>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col p-0 pt-2 min-h-0">
                      <div className="flex-grow">

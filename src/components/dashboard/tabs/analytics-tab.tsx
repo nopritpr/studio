@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ChargingHabitChart from "../charts/charging-habit-chart";
 import type { VehicleState } from "@/lib/types";
-import { BatteryCharging, Zap, TrendingUp } from "lucide-react";
+import { BatteryCharging, Zap, TrendingUp, AlertTriangle } from "lucide-react";
 import DynamicRangeChart from "../charts/dynamic-range-chart";
 import FatigueMonitorGauge from "../charts/fatigue-monitor-gauge";
 import { EV_CONSTANTS } from "@/lib/constants";
@@ -75,7 +75,7 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
             <Card className="flex flex-col">
                 <CardHeader>
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><Zap className="w-4 h-4"/>Charging Habit</CardTitle>
-                    <p className="text-xs text-muted-foreground -mt-2">Clustering model analysis.</p>
+                    <p className="text-xs text-muted-foreground -mt-2">A K-Means clustering model groups charging sessions by time to identify user habits.</p>
                 </CardHeader>
                 <CardContent>
                     <ChargingHabitChart data={analyzeChargingPatterns()} />
@@ -94,8 +94,8 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                 </Card>
                  <Card className="flex flex-col">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-headline">Fatigue Monitor</CardTitle>
-                        <p className="text-xs text-muted-foreground -mt-2">LSTM Anomaly detection.</p>
+                        <CardTitle className="text-sm font-headline flex items-center gap-2"><AlertTriangle className="w-4 h-4"/>Fatigue Monitor</CardTitle>
+                        <p className="text-xs text-muted-foreground -mt-2">An LSTM autoencoder detects anomalies in driving patterns that may indicate fatigue.</p>
                     </CardHeader>
                     <CardContent className="flex-grow flex items-center justify-end">
                         <FatigueMonitorGauge fatigueLevel={state.fatigueLevel} />
@@ -106,7 +106,7 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
             <Card className="flex flex-col md:col-span-2">
                 <CardHeader className="p-4">
                     <h4 className="font-semibold text-sm font-headline flex items-center gap-2 mb-1"><TrendingUp className="w-4 h-4" />Dynamic Range Factors</h4>
-                    <p className="text-xs text-muted-foreground -mt-2">Regression model analyzing range impact.</p>
+                    <p className="text-xs text-muted-foreground -mt-2">A regression model analyzes real-time data to predict how each factor impacts the vehicle's range.</p>
                 </CardHeader>
                 <CardContent className="p-4 pt-0 h-full flex-grow min-h-0">
                     <DynamicRangeChart state={state} />
