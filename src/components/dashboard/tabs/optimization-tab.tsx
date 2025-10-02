@@ -37,14 +37,14 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
 
   const insights = useMemo(() => {
     const allInsights = [];
-    if (state.drivingRecommendation && state.drivingRecommendation !== 'Start driving to get recommendations.') {
-        allInsights.push({
-            icon: '💡',
-            title: 'Live Tip',
-            description: state.drivingRecommendation,
-            justification: state.drivingRecommendationJustification,
-        });
-    }
+    
+    allInsights.push({
+        icon: '💡',
+        title: 'Live Tip',
+        description: "Driving good",
+        justification: "This is a temporary message to check if the UI is updating correctly.",
+    });
+
     if (state.drivingStyleRecommendations) {
         state.drivingStyleRecommendations.slice(0, 1).forEach(rec => { // Only show top 1 style recommendation
             allInsights.push({
@@ -56,7 +56,7 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
         });
     }
     return allInsights;
-  }, [state.drivingRecommendation, state.drivingRecommendationJustification, state.drivingStyleRecommendations]);
+  }, [state.drivingStyleRecommendations]);
   
   const activeProfileData = state.profiles[state.activeProfile];
   
