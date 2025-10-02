@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import EcoScoreGauge from "../charts/eco-score-gauge";
 import type { VehicleState, AiState } from "@/lib/types";
-import { Leaf, User, BrainCircuit, BarChart, RefreshCw, Hourglass } from "lucide-react";
+import { Leaf, User, BrainCircuit, BarChart, RefreshCw, Hourglass, Wind } from "lucide-react";
 import { useMemo, useState } from 'react';
 import IdleDrainChart from "../charts/idle-drain-chart";
 
@@ -34,6 +34,27 @@ const ProfileDetail = ({ label, value }: { label: string, value: string | number
     </div>
 );
 
+const AcImpactDisplay = ({ impact, recommendation }: { impact: number, recommendation: string }) => {
+  const isGain = impact > 0;
+  const displayValue = Math.abs(impact).toFixed(1);
+  const colorClass = isGain ? "text-green-400" : "text-destructive";
+
+  return (
+    <div className="p-3 rounded-lg flex flex-col items-center justify-center text-center gap-1 bg-muted/50 border border-border/50 h-full">
+       <div className="flex items-center gap-2 text-primary">
+            <Wind size={16} />
+            <h5 className="font-semibold text-foreground">A/C Impact</h5>
+       </div>
+       <p className="text-xs text-muted-foreground -mt-1 mb-2">Predicted range change in the next hour.</p>
+       <p className={`text-3xl font-bold font-headline ${colorClass}`}>
+        {isGain ? '+' : '-'}{displayValue} km
+       </p>
+       <p className="text-xs text-muted-foreground leading-snug">{recommendation}</p>
+    </div>
+  );
+};
+
+
 export default function OptimizationTab({ state, onProfileSwitchClick, onStabilizerToggle, onRefreshInsights }: OptimizationTabProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -43,43 +64,6 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
     setIsRefreshing(false);
   }
 
-  const insights = useMemo(() => {
-    const allInsights = [];
-    const defaultRecommendation = "Click the refresh button to get live AI driving tips.";
-    const defaultStyle = "Click refresh to analyze your unique style.";
-
-    let recommendation = state.drivingRecommendation;
-    if (!recommendation || recommendation === "AI service unavailable.") {
-      recommendation = defaultRecommendation;
-    }
-    
-    allInsights.push({
-        icon: '💡',
-        title: 'Live Tip',
-        description: recommendation,
-        justification: state.drivingRecommendationJustification,
-    });
-    
-
-    if (state.drivingStyleRecommendations && state.drivingStyleRecommendations.length > 0) {
-        allInsights.push({
-            icon: '🎯',
-            title: 'Driving Style',
-            description: state.drivingStyleRecommendations[0],
-            justification: null,
-        });
-    } else {
-        allInsights.push({
-            icon: '🎯',
-            title: 'Driving Style',
-            description: defaultStyle,
-            justification: null,
-        });
-    }
-
-    return allInsights;
-  }, [state.drivingRecommendation, state.drivingRecommendationJustification, state.drivingStyleRecommendations]);
-  
   const activeProfileData = state.profiles[state.activeProfile];
   
   const greenScore = state.odometer > 0 ? state.odometer * 0.12 : 0; // 120g CO2 saved per km vs average ICE car
@@ -136,10 +120,10 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
             </Card>
 
             <Card className="p-4 flex flex-col">
-                <CardHeader className="p-0 pb-2 flex-row justify-between items-center">
+                 <CardHeader className="p-0 pb-2 flex-row justify-between items-center">
                     <div>
-                        <CardTitle className="text-sm font-headline flex items-center gap-2"><BrainCircuit className="w-4 h-4"/>AI Driving Coach</CardTitle>
-                        <p className="text-xs text-muted-foreground">Live analysis of driving behavior for tips.</p>
+                        <CardTitle className="text-sm font-headline flex items-center gap-2"><BrainCircuit className="w-4 h-4"/>AI Insights</CardTitle>
+                         <p className="text-xs text-muted-foreground">Live analysis for tips & forecasts.</p>
                     </div>
                     <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={isRefreshing}>
                         <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -147,19 +131,22 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col p-0 pt-2 min-h-0">
                      <div className="flex-grow space-y-2 overflow-y-auto pr-2">
-                        {insights.map((insight, i) => (
-                            <InsightItem
-                                key={i}
-                                icon={insight.icon}
-                                title={insight.title}
-                                description={insight.description}
-                                justification={insight.justification}
+                        {state.acUsageImpact ? (
+                            <AcImpactDisplay 
+                                impact={state.acUsageImpact.rangeImpactKm} 
+                                recommendation={state.acUsageImpact.recommendation}
                             />
-                        ))}
-                    </div>
-                    <div className="flex items-center justify-between mt-auto pt-4 border-t">
-                        <label htmlFor="stabilizer-toggle" className="text-sm">Prediction Stabilizer</label>
-                        <Switch id="stabilizer-toggle" checked={state.stabilizerEnabled} onCheckedChange={onStabilizerToggle} />
+                        ) : (
+                             <div className="p-3 rounded-lg flex items-center justify-center gap-3 text-sm bg-muted/50 border border-border/50 h-full">
+                                <p className="text-xs text-muted-foreground text-center">Click refresh to get A/C impact analysis.</p>
+                            </div>
+                        )}
+                        <InsightItem
+                            icon={'💡'}
+                            title="Live Tip"
+                            description={state.drivingRecommendation}
+                            justification={state.drivingRecommendationJustification}
+                        />
                     </div>
                 </CardContent>
             </Card>

@@ -91,6 +91,7 @@ export const defaultAiState: AiState = {
   fatigueWarning: null,
   fatigueLevel: 0,
   idleDrainPrediction: null,
+  acUsageImpact: null,
 };
 
 

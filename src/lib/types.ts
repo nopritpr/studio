@@ -200,12 +200,18 @@ export interface PredictiveIdleDrainOutput {
   }[];
 }
 
+export interface AcUsageImpactOutput {
+  rangeImpactKm: number;
+  recommendation: string;
+}
+
 export interface AiState {
   drivingRecommendation: string;
   drivingRecommendationJustification: string | null;
-drivingStyle: string;
+  drivingStyle: string;
   drivingStyleRecommendations: string[];
   fatigueWarning: string | null;
   fatigueLevel: number;
   idleDrainPrediction: PredictiveIdleDrainOutput | null;
+  acUsageImpact: AcUsageImpactOutput | null;
 }

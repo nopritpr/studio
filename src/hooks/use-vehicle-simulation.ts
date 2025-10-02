@@ -2,13 +2,14 @@
 'use client';
 
 import { useState, useEffect, useCallback, useReducer, useRef } from 'react';
-import type { VehicleState, DriveMode, Profile, ChargingLog, SohHistoryEntry, AiState, PredictiveIdleDrainOutput } from '@/lib/types';
+import type { VehicleState, DriveMode, Profile, ChargingLog, SohHistoryEntry, AiState, PredictiveIdleDrainOutput, AcUsageImpactOutput } from '@/lib/types';
 import { defaultState, EV_CONSTANTS, MODE_SETTINGS, defaultAiState } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 import { getDrivingRecommendation, type DrivingRecommendationInput } from '@/ai/flows/adaptive-driving-recommendations';
 import { analyzeDrivingStyle, type AnalyzeDrivingStyleInput } from '@/ai/flows/driver-profiling';
 import { predictIdleDrain, type PredictiveIdleDrainInput } from '@/ai/flows/predictive-idle-drain';
 import { monitorDriverFatigue, type DriverFatigueInput } from '@/ai/flows/driver-fatigue-monitor';
+import { getAcUsageImpact, type AcUsageImpactInput } from '@/ai/flows/ac-usage-impact-forecaster';
 import { googleAI } from '@genkit-ai/google-genai';
 
 const keys: Record<string, boolean> = {
@@ -261,7 +262,6 @@ export function useVehicleSimulation() {
     } catch (error) {
         console.error("Error calling predictIdleDrain:", error);
         
-        // Fallback to a default prediction if AI fails
         const defaultPrediction: PredictiveIdleDrainOutput = {
             hourlyPrediction: Array.from({ length: 8 }, (_, i) => ({
                 hour: i + 1,
@@ -296,13 +296,14 @@ export function useVehicleSimulation() {
 
     try {
         const rec = await getDrivingRecommendation(recInput);
-        setAiState({
+        setAiState(prevState => ({
+            ...prevState,
             drivingRecommendation: rec.recommendation,
             drivingRecommendationJustification: rec.justification,
-        });
+        }));
     } catch (error) {
         console.error("Error calling getDrivingRecommendation:", error);
-        setAiState({ drivingRecommendation: 'AI service unavailable.', drivingRecommendationJustification: null });
+        setAiState(prevState => ({ ...prevState, drivingRecommendation: 'AI service unavailable.', drivingRecommendationJustification: null }));
     }
 
     const styleInput: AnalyzeDrivingStyleInput = {
@@ -313,13 +314,14 @@ export function useVehicleSimulation() {
     };
     try {
         const style = await analyzeDrivingStyle(styleInput);
-        setAiState({
+        setAiState(prevState => ({
+            ...prevState,
             drivingStyle: style.drivingStyle,
             drivingStyleRecommendations: style.recommendations,
-        });
+        }));
     } catch (error) {
         console.error("Error calling analyzeDrivingStyle:", error);
-        setAiState({ drivingStyle: 'Style analysis unavailable.', drivingStyleRecommendations: [] });
+        setAiState(prevState => ({...prevState, drivingStyle: 'Style analysis unavailable.', drivingStyleRecommendations: [] }));
     }
     
     const fatigueInput: DriverFatigueInput = {
@@ -339,11 +341,27 @@ export function useVehicleSimulation() {
         } else if (currentAiState.fatigueWarning) {
             newFatigueWarning = null;
         }
-        setAiState({ fatigueLevel: newFatigueLevel, fatigueWarning: newFatigueWarning });
+        setAiState(prevState => ({ ...prevState, fatigueLevel: newFatigueLevel, fatigueWarning: newFatigueWarning }));
     } catch (error) {
         console.error("Error calling monitorDriverFatigue:", error);
-        setAiState({ fatigueLevel: 0, fatigueWarning: null });
+        setAiState(prevState => ({ ...prevState, fatigueLevel: 0, fatigueWarning: null }));
     }
+
+    const acImpactInput: AcUsageImpactInput = {
+        acOn: currentState.acOn,
+        acTemp: currentState.acTemp,
+        outsideTemp: currentState.outsideTemp,
+        recentWhPerKm: currentState.recentWhPerKm > 0 ? currentState.recentWhPerKm : 160,
+    };
+    try {
+        const acImpactResult = await getAcUsageImpact(acImpactInput);
+        setAiState(prevState => ({...prevState, acUsageImpact: acImpactResult }));
+    } catch (error) {
+        console.error("Error calling getAcUsageImpact:", error);
+        setAiState(prevState => ({...prevState, acUsageImpact: null}));
+    }
+
+
     toast({ title: 'AI Insights Refreshed!', variant: 'default' });
   }, [toast]);
 
@@ -520,10 +538,13 @@ export function useVehicleSimulation() {
     triggerIdlePrediction();
     refreshAiInsights();
 
+    const refreshInterval = setInterval(refreshAiInsights, 10000);
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      clearInterval(refreshInterval);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
