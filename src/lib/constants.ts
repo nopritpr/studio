@@ -89,7 +89,7 @@ export const defaultState: VehicleState = {
   drivingRecommendation: 'Start driving to get recommendations.',
   drivingStyle: 'Balanced',
   drivingStyleRecommendations: [],
- fatigueWarning: null,
+  fatigueWarning: null,
   fatigueLevel: 0,
 };
 
@@ -138,5 +138,3 @@ export const MODE_SETTINGS: Record<
     strongRegenBrakeRate: 7.0,
   },
 };
-
-    

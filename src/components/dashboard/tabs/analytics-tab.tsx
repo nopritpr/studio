@@ -44,8 +44,9 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
         ];
     }
     
-    // As per user request, cost savings is reset to 0.
-    const savings = 0;
+    // Average cost of petrol per km in India (assuming 15 km/l and Rs 100/l) is ~Rs 6.67
+    // Average cost of EV charging per km (assuming 7 km/kWh and Rs 8/kWh) is ~Rs 1.14
+    const savings = state.odometer > 0 ? state.odometer * (6.67 - 1.14) : 0;
 
     return (
         <div className="h-full grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4 min-h-0">

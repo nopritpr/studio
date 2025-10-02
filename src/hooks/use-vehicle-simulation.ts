@@ -36,12 +36,9 @@ const generateInitialSohHistory = (): SohHistoryEntry[] => {
     ];
 };
 
-const initialSohHistory = generateInitialSohHistory();
-const lastHistoryEntry = initialSohHistory[initialSohHistory.length - 1];
-
 const initialState = {
     ...defaultState,
-    sohHistory: initialSohHistory,
+    sohHistory: generateInitialSohHistory(),
     odometer: 0,
     packSOH: 100,
     equivalentFullCycles: 0,
@@ -67,7 +64,7 @@ export function useVehicleSimulation() {
 
   const callSohForecast = useCallback(async () => {
     const currentState = stateRef.current;
-    if (currentState.sohHistory.length < 2) return;
+    if (currentState.sohHistory.length < 1) return;
     if (Date.now() - lastSohCheck.current < 60000 && currentState.sohForecast.length > 0) return; // run every 60s, but always run first time
     lastSohCheck.current = Date.now();
 
@@ -153,14 +150,10 @@ export function useVehicleSimulation() {
             temperatureSetting: currentState.acTemp,
           },
           weatherData: {
-            temperature: currentState.weather?.main.temp || 25,
-            precipitation: currentState.weather?.weather[0].main.toLowerCase() || 'sunny',
-            windSpeed: currentState.weather?.wind.speed ? currentState.weather.wind.speed * 3.6 : 15,
+            temperature: currentState.weather?.main.temp || currentState.outsideTemp,
+            precipitation: currentState.weather?.weather[0].main.toLowerCase() || 'none',
+            windSpeed: currentState.weather?.wind.speed ? currentState.weather.wind.speed * 3.6 : 0,
           },
-          historicalData: currentState.speedHistory.map((s, i) => ({
-            speed: s,
-            powerConsumption: currentState.powerHistory[i] || 0,
-          })),
           batteryCapacity: currentState.batteryCapacity_kWh,
           currentBatteryLevel: currentState.batterySOC,
         }),

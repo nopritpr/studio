@@ -63,8 +63,7 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
   
   const activeProfileData = state.profiles[state.activeProfile];
   
-  // As per user request, green score is reset to 0.
-  const greenScore = 0.0;
+  const greenScore = state.odometer > 0 ? state.odometer * 0.12 : 0; // 120g CO2 saved per km vs average ICE car
 
   return (
         <div className="h-full grid grid-cols-3 grid-rows-2 gap-4 min-h-0">
