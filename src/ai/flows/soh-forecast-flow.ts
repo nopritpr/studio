@@ -13,7 +13,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { gemma7b } from 'genkitx-groq';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const SohForecastInputSchema = z.object({
   historicalData: z.array(
@@ -55,7 +55,7 @@ const prompt = ai.definePrompt({
   input: {schema: SohForecastInputSchema},
   output: {schema: SohForecastOutputSchema},
   config: {
-    model: gemma7b,
+    model: googleAI.model('gemini-pro'),
   },
   prompt: `You are a battery health forecasting expert. Given the historical driving and battery health data for an EV, predict the future State of Health (SOH) of the battery at different future odometer readings.
 

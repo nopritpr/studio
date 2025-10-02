@@ -12,7 +12,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { gemma7b } from 'genkitx-groq';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const DriverFatigueInputSchema = z.object({
   speedHistory: z.array(z.number()).describe('The history of the driver speed in km/h over the last 60 seconds.'),
@@ -38,7 +38,7 @@ const prompt = ai.definePrompt({
   input: {schema: DriverFatigueInputSchema},
   output: {schema: DriverFatigueOutputSchema},
   config: {
-    model: gemma7b,
+    model: googleAI.model('gemini-pro'),
   },
   prompt: `You are an expert AI system designed to detect driver fatigue by analyzing vehicle telemetry, simulating an LSTM Autoencoder for anomaly detection. Your primary goal is to identify driving patterns that deviate from normal, alert driving.
 

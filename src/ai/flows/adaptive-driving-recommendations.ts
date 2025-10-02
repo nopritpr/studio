@@ -11,7 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { gemma7b } from 'genkitx-groq';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const DrivingRecommendationInputSchema = z.object({
   drivingStyle: z
@@ -54,7 +54,7 @@ const adaptiveDrivingRecommendationsPrompt = ai.definePrompt({
   input: {schema: DrivingRecommendationInputSchema},
   output: {schema: DrivingRecommendationOutputSchema},
   config: {
-    model: gemma7b,
+    model: googleAI.model('gemini-pro'),
   },
   prompt: `You are an expert AI driving coach for an electric vehicle. Your goal is to provide positive, helpful, and actionable recommendations to the driver to maximize their energy efficiency and range. Analyze the real-time data provided and generate a single recommendation with a clear justification.
 
