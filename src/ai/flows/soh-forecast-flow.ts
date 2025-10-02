@@ -90,18 +90,16 @@ const sohForecastFlow = ai.defineFlow(
     }
 
     // Combine historical and forecasted data
-    const lastHistorical = input.historicalData[input.historicalData.length - 1];
     const combinedData = [
-        ...input.historicalData,
+        ...input.historicalData.filter(d => d.soh !== undefined), // only include historical data with SOH
         ...output
-    ];
+    ].map(item => ({ odometer: item.odometer, soh: item.soh! }));
 
-    // Create a new array with unique odometer readings, preferring forecasted values
+
+    // Create a new array with unique odometer readings, preferring forecasted values for overlaps
     const dataMap = new Map<number, { odometer: number; soh: number }>();
     combinedData.forEach(item => {
-        if(item.soh) {
-            dataMap.set(item.odometer, { odometer: item.odometer, soh: item.soh });
-        }
+        dataMap.set(item.odometer, item);
     });
 
     const uniqueData = Array.from(dataMap.values());

@@ -2,10 +2,9 @@
 'use client';
 
 import * as React from 'react';
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Legend } from 'recharts';
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Legend, Tooltip } from 'recharts';
 import {
   ChartContainer,
-  ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
 
@@ -30,12 +29,20 @@ export default function SohForecastChart({ data, currentOdometer }: SohForecastC
     }
   };
 
+  if (!data || data.length === 0) {
+    return (
+        <div className="w-full h-full flex items-center justify-center">
+            <p className="text-sm text-muted-foreground">Generating forecast data...</p>
+        </div>
+    );
+  }
+
   const historicalData = data.filter(d => d.odometer <= currentOdometer);
   const lastHistoricalPoint = historicalData[historicalData.length - 1];
 
   const forecastData = data.filter(d => d.odometer >= currentOdometer);
   // Ensure the forecast line connects to the historical line
-  if (lastHistoricalPoint && forecastData.length > 0 && forecastData[0].odometer !== lastHistoricalPoint.odometer) {
+  if (lastHistoricalPoint && forecastData.length > 0 && forecastData[0].odometer > lastHistoricalPoint.odometer) {
     forecastData.unshift(lastHistoricalPoint);
   }
 
@@ -59,7 +66,8 @@ export default function SohForecastChart({ data, currentOdometer }: SohForecastC
           tickLine={false}
           axisLine={false}
           tickMargin={8}
-          unit=" km"
+          name="Odometer"
+          unit="km"
         />
         <YAxis
           domain={[70, 100]}
@@ -67,15 +75,16 @@ export default function SohForecastChart({ data, currentOdometer }: SohForecastC
           axisLine={false}
           tickMargin={8}
           unit="%"
+          name="SOH"
         />
-        <ChartTooltip
-          cursor={false}
+        <Tooltip
           content={
             <ChartTooltipContent
-              labelFormatter={(value, payload) => `${payload[0]?.payload.odometer.toLocaleString()} km`}
+              labelFormatter={(value, payload) => payload[0] ? `${payload[0].payload.odometer.toLocaleString()} km` : value}
               formatter={(value, name) => [`${(value as number).toFixed(1)}%`, name === 'soh' ? 'SOH' : name]}
             />
           }
+          cursor={{ strokeDasharray: '3 3' }}
         />
         <Legend content={() => (
             <div className="text-xs flex justify-center gap-4 mt-2">
@@ -93,7 +102,7 @@ export default function SohForecastChart({ data, currentOdometer }: SohForecastC
                 <stop offset="95%" stopColor={chartConfig.forecast.color} stopOpacity={0.1} />
             </linearGradient>
         </defs>
-        <Area
+        {historicalData.length > 1 && <Area
           type="monotone"
           dataKey="soh"
           data={historicalData}
@@ -103,8 +112,8 @@ export default function SohForecastChart({ data, currentOdometer }: SohForecastC
           fill="url(#fillHistorical)"
           name="Historical SOH"
           isAnimationActive={false}
-        />
-        <Area
+        />}
+        {forecastData.length > 1 && <Area
           type="monotone"
           dataKey="soh"
           data={forecastData}
@@ -115,7 +124,7 @@ export default function SohForecastChart({ data, currentOdometer }: SohForecastC
           fill="url(#fillForecast)"
           name="Forecasted SOH"
           isAnimationActive={false}
-        />
+        />}
       </AreaChart>
     </ChartContainer>
   );

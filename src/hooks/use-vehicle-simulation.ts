@@ -22,26 +22,37 @@ function stateReducer(state: VehicleState, action: Partial<VehicleState>): Vehic
 }
 
 const generateInitialSohHistory = (): SohHistoryEntry[] => {
-  // For a new car, start with a single entry at 0.
-  return [
-    {
-      odometer: 0,
-      cycleCount: 0,
-      avgBatteryTemp: 25,
-      soh: 100,
-      ecoPercent: 100,
-      cityPercent: 0,
-      sportsPercent: 0,
-    },
-  ];
+  // Simulate a 4-year-old car with ~80,000 km
+  const history: SohHistoryEntry[] = [];
+  const startOdometer = 80000;
+  const startSoh = 92; // Realistic SOH after 4 years
+  const startCycles = 400;
+
+  for (let i = 0; i <= 10; i++) {
+    const odo = (startOdometer / 10) * i;
+    const sohDecline = (100 - startSoh) * Math.pow(i / 10, 1.5);
+    history.push({
+      odometer: odo,
+      cycleCount: (startCycles / 10) * i,
+      avgBatteryTemp: 25 + Math.random() * 5,
+      soh: 100 - sohDecline,
+      ecoPercent: 60,
+      cityPercent: 30,
+      sportsPercent: 10,
+    });
+  }
+  return history;
 };
+
+const initialSohHistory = generateInitialSohHistory();
+const lastHistoryEntry = initialSohHistory[initialSohHistory.length - 1];
 
 const initialState = {
     ...defaultState,
-    sohHistory: generateInitialSohHistory(),
-    odometer: 0,
-    packSOH: 100,
-    equivalentFullCycles: 0,
+    sohHistory: initialSohHistory,
+    odometer: lastHistoryEntry.odometer,
+    packSOH: lastHistoryEntry.soh || 92,
+    equivalentFullCycles: lastHistoryEntry.cycleCount,
 };
 
 
@@ -56,7 +67,7 @@ export function useVehicleSimulation() {
   const lastAiCall = useRef(0);
   const lastFatigueCheck = useRef(0);
   const lastSohCheck = useRef(0);
-  const lastSohHistoryUpdateOdometer = useRef(0);
+  const lastSohHistoryUpdateOdometer = useRef(state.odometer);
 
   useEffect(() => {
     stateRef.current = state;
