@@ -4,7 +4,7 @@
 /**
  * @fileOverview Provides adaptive driving recommendations based on driving habits and predicted range.
  *
- * - getDrivingRecommendation - A function that returns driving recommendations.
+ * - getDrivingRecommendation - a function that returns driving recommendations.
  * - DrivingRecommendationInput - The input type for the getDrivingRecommendation function.
  * - DrivingRecommendationOutput - The return type for the getDrivingRecommendation function.
  */
