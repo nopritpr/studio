@@ -37,15 +37,20 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
 
   const insights = useMemo(() => {
     const allInsights = [];
-    
-    if (state.drivingRecommendation && state.drivingRecommendation !== 'Start driving to get recommendations.' && state.drivingRecommendation !== 'AI service unavailable.') {
-        allInsights.push({
-            icon: '💡',
-            title: 'Live Tip',
-            description: state.drivingRecommendation,
-            justification: state.drivingRecommendationJustification,
-        });
+    const defaultRecommendation = "Start driving to get recommendations.";
+
+    let recommendation = state.drivingRecommendation;
+    if (!recommendation || recommendation === "AI service unavailable.") {
+      recommendation = defaultRecommendation;
     }
+    
+    allInsights.push({
+        icon: '💡',
+        title: 'Live Tip',
+        description: recommendation,
+        justification: state.drivingRecommendationJustification,
+    });
+    
 
     if (state.drivingStyleRecommendations && state.drivingStyleRecommendations.length > 0) {
         allInsights.push({

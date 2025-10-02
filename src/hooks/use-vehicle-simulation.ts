@@ -91,19 +91,36 @@ export function useVehicleSimulation() {
     }
 
     try {
-      const [rec, style, range] = await Promise.all([
-        getDrivingRecommendation({
-          drivingStyle: currentState.drivingStyle,
-          predictedRange: currentState.predictedDynamicRange,
-          batterySOC: currentState.batterySOC,
-          acUsage: currentState.acOn,
-          driveMode: currentState.driveMode,
-          outsideTemperature: currentState.outsideTemp,
-          acTemp: currentState.acTemp,
-          passengers: currentState.passengers,
-          accelerationHistory: currentState.accelerationHistory.slice(0, 10),
-          driveModeHistory: currentState.driveModeHistory.slice(0, 10) as string[],
-        }),
+      const rec = await getDrivingRecommendation({
+        drivingStyle: currentState.drivingStyle,
+        predictedRange: currentState.predictedDynamicRange,
+        batterySOC: currentState.batterySOC,
+        acUsage: currentState.acOn,
+        driveMode: currentState.driveMode,
+        outsideTemperature: currentState.outsideTemp,
+        acTemp: currentState.acTemp,
+        passengers: currentState.passengers,
+        accelerationHistory: currentState.accelerationHistory.slice(0, 10),
+        driveModeHistory: currentState.driveModeHistory.slice(0, 10) as string[],
+      });
+      
+      setState({
+        drivingRecommendation: rec.recommendation,
+        drivingRecommendationJustification: rec.justification,
+      });
+
+    } catch (error) {
+      console.error('AI Flow error:', error);
+       setState({ drivingRecommendation: 'AI service unavailable.', drivingRecommendationJustification: null });
+    }
+  }, []);
+
+  const callSecondaryAiFlows = useCallback(async () => {
+    const currentState = stateRef.current;
+    if (currentState.speed < 1) return;
+
+    try {
+      const [style, range] = await Promise.all([
         analyzeDrivingStyle({
           speedHistory: currentState.speedHistory,
           accelerationHistory: currentState.accelerationHistory,
@@ -127,18 +144,15 @@ export function useVehicleSimulation() {
       ]);
       
       setState({
-        drivingRecommendation: rec.recommendation,
-        drivingRecommendationJustification: rec.justification,
         drivingStyle: style.drivingStyle,
         drivingStyleRecommendations: style.recommendations,
         predictedDynamicRange: range.estimatedRange,
       });
-
     } catch (error) {
-      console.error('AI Flow error:', error);
-       setState({ drivingRecommendation: 'AI service unavailable.', drivingRecommendationJustification: null });
+      console.error('Secondary AI Flow error:', error);
     }
   }, []);
+
 
   const callSohForecast = useCallback(async () => {
     const currentState = stateRef.current;
@@ -493,7 +507,8 @@ export function useVehicleSimulation() {
   // AI Timers
   useEffect(() => {
     const timers = [
-        setInterval(callAiFlows, 10000),
+        setInterval(callAiFlows, 5000),
+        setInterval(callSecondaryAiFlows, 15000),
         setInterval(callFatigueMonitor, 5000),
         setInterval(callSohForecast, 60000)
     ];
@@ -501,6 +516,7 @@ export function useVehicleSimulation() {
     // Initial calls for AI features
     callSohForecast();
     callAiFlows();
+    callSecondaryAiFlows();
     callFatigueMonitor();
 
     return () => timers.forEach(clearInterval);
