@@ -56,6 +56,16 @@ export default function OptimizationTab({ state, onProfileSwitchClick, onStabili
         });
     }
 
+    // Default message if no insights are available
+    if (allInsights.length === 0) {
+        allInsights.push({
+            icon: '💡',
+            title: 'Live Tip',
+            description: 'I want tips to be shown here based on driving simulation',
+            justification: null,
+        });
+    }
+
     return allInsights;
   }, [state.drivingRecommendation, state.drivingRecommendationJustification, state.drivingStyleRecommendations]);
   
