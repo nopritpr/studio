@@ -67,17 +67,25 @@ export default function DashboardTab({
       if (!lat || !lng) return;
       try {
         const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`);
+        let weatherData: WeatherData | null = null;
         if (weatherResponse.ok) {
-          const weatherData = await weatherResponse.json();
+          weatherData = await weatherResponse.json();
           setWeather(weatherData);
-          setState({ weather: weatherData, outsideTemp: weatherData.main.temp });
         }
 
         const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&units=metric&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`);
+        let forecastData: FiveDayForecast | null = null;
         if (forecastResponse.ok) {
-          const forecastData = await forecastResponse.json();
+          forecastData = await forecastResponse.json();
           setForecast(forecastData);
         }
+        
+        setState({ 
+          weather: weatherData, 
+          weatherForecast: forecastData,
+          outsideTemp: weatherData?.main.temp || 25 
+        });
+
       } catch (error) {
         console.error("Failed to fetch weather data", error);
       }
@@ -262,3 +270,5 @@ export default function DashboardTab({
     </div>
   );
 }
+
+    

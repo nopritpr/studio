@@ -75,6 +75,7 @@ export const defaultState: Omit<VehicleState, 'sohHistory'> = {
   },
   activeProfile: 'Pritesh',
   weather: null,
+  weatherForecast: null,
   rangePenalties: {
     ac: 0,
     load: 0,
@@ -92,6 +93,7 @@ export const defaultAiState: AiState = {
   fatigueLevel: 0,
   idleDrainPrediction: null,
   acUsageImpact: null,
+  weatherImpact: null,
 };
 
 
@@ -140,3 +142,5 @@ export const MODE_SETTINGS: Record<
     strongRegenBrakeRate: 7.0,
   },
 };
+
+    

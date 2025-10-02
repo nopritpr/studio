@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useReducer, useRef } from 'react';
-import type { VehicleState, DriveMode, Profile, ChargingLog, SohHistoryEntry, AiState, PredictiveIdleDrainOutput, AcUsageImpactOutput } from '@/lib/types';
+import type { VehicleState, DriveMode, Profile, ChargingLog, SohHistoryEntry, AiState, PredictiveIdleDrainOutput, AcUsageImpactOutput, FiveDayForecast, WeatherData, GetWeatherImpactInput, GetWeatherImpactOutput } from '@/lib/types';
 import { defaultState, EV_CONSTANTS, MODE_SETTINGS, defaultAiState } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 import { getDrivingRecommendation, type DrivingRecommendationInput } from '@/ai/flows/adaptive-driving-recommendations';
@@ -10,6 +10,9 @@ import { analyzeDrivingStyle, type AnalyzeDrivingStyleInput } from '@/ai/flows/d
 import { predictIdleDrain, type PredictiveIdleDrainInput } from '@/ai/flows/predictive-idle-drain';
 import { monitorDriverFatigue, type DriverFatigueInput } from '@/ai/flows/driver-fatigue-monitor';
 import { getAcUsageImpact, type AcUsageImpactInput } from '@/ai/flows/ac-usage-impact-forecaster';
+// Import the new weather impact flow
+import { getWeatherImpact } from '@/ai/flows/weather-impact-forecast';
+
 
 const keys: Record<string, boolean> = {
   ArrowUp: false,
@@ -199,53 +202,45 @@ export function useVehicleSimulation() {
     const currentState = vehicleStateRef.current;
     const idealRange = currentState.initialRange * (currentState.batterySOC / 100);
 
-    const penalties = { ac: 0, load: 0, temp: 0, driveMode: 0 };
-    let totalPenaltyFactor = 1;
+    let penaltyPercentage = { ac: 0, load: 0, temp: 0, driveMode: 0 };
 
+    // A/C Penalty
     if (currentState.acOn) {
       const tempDiffFromOptimal = Math.abs(currentState.acTemp - (currentState.outsideTemp || 22));
-      const acFactor = 1.05 + (tempDiffFromOptimal / 10) * 0.05;
-      totalPenaltyFactor *= acFactor;
-      penalties.ac = idealRange * (1 - 1/acFactor);
-    }
-    
-    const passengerFactor = 1 + (currentState.passengers - 1) * 0.015;
-    const goodsFactor = currentState.goodsInBoot ? 1.03 : 1;
-    const loadFactor = passengerFactor * goodsFactor;
-    if (loadFactor > 1) {
-      totalPenaltyFactor *= loadFactor;
-      penalties.load = idealRange * (1 - 1/loadFactor);
+      penaltyPercentage.ac = 0.05 + (tempDiffFromOptimal / 10) * 0.05; // 5% base + 0.5% per degree diff
     }
 
+    // Load Penalty
+    const passengerPenalty = (currentState.passengers - 1) * 0.015;
+    const goodsPenalty = currentState.goodsInBoot ? 0.03 : 0;
+    penaltyPercentage.load = passengerPenalty + goodsPenalty;
+    
+    // Temperature Penalty
     const outsideTemp = currentState.outsideTemp || 22;
-    const tempDiff = Math.abs(22 - outsideTemp);
-    if (tempDiff > 5) {
-      const tempFactor = 1 + (tempDiff - 5) * 0.008;
-      totalPenaltyFactor *= tempFactor;
-      penalties.temp = idealRange * (1 - 1/tempFactor);
+    const tempDiffFromIdeal = Math.abs(22 - outsideTemp);
+    if (tempDiffFromIdeal > 5) {
+        // Penalty increases by 0.8% for every degree away from the ideal range (beyond 5 degrees)
+        penaltyPercentage.temp = (tempDiffFromIdeal - 5) * 0.008;
     }
-    
-    let modeFactor = 1;
-    if (currentState.driveMode === 'City') modeFactor = 1.07;
-    else if (currentState.driveMode === 'Sports') modeFactor = 1.18;
-    if (modeFactor > 1) {
-      totalPenaltyFactor *= modeFactor;
-      penalties.driveMode = idealRange * (1 - 1/modeFactor);
-    }
-    
-    const predictedRange = idealRange / totalPenaltyFactor;
-    const totalCalculatedPenalty = penalties.ac + penalties.load + penalties.temp + penalties.driveMode;
-    const totalActualPenalty = Math.max(0, idealRange - predictedRange);
 
-    if (totalCalculatedPenalty > 0) {
-      const ratio = totalActualPenalty / totalCalculatedPenalty;
-      penalties.ac *= ratio;
-      penalties.load *= ratio;
-      penalties.temp *= ratio;
-      penalties.driveMode *= ratio;
-    }
-    
-    setVehicleState({ range: predictedRange, rangePenalties: penalties });
+    // Drive Mode Penalty
+    if (currentState.driveMode === 'City') penaltyPercentage.driveMode = 0.07;
+    else if (currentState.driveMode === 'Sports') penaltyPercentage.driveMode = 0.18;
+
+    const totalPenaltyPercentage = penaltyPercentage.ac + penaltyPercentage.load + penaltyPercentage.temp + penaltyPercentage.driveMode;
+
+    const predictedRange = idealRange * (1 - totalPenaltyPercentage);
+    const totalRangeLoss = idealRange - predictedRange;
+
+    // Distribute the total loss back into the penalty object for UI display
+    const finalPenalties = {
+      ac: totalRangeLoss * (penaltyPercentage.ac / totalPenaltyPercentage || 0),
+      load: totalRangeLoss * (penaltyPercentage.load / totalPenaltyPercentage || 0),
+      temp: totalRangeLoss * (penaltyPercentage.temp / totalPenaltyPercentage || 0),
+      driveMode: totalRangeLoss * (penaltyPercentage.driveMode / totalPenaltyPercentage || 0),
+    };
+
+    setVehicleState({ range: predictedRange, rangePenalties: finalPenalties });
   }, []);
 
   const isIdlePredictionRunning = useRef(false);
@@ -273,6 +268,35 @@ export function useVehicleSimulation() {
   }, []);
 
   const idleStartTimeRef = useRef<number | null>(null);
+
+  const isWeatherImpactRunning = useRef(false);
+  const triggerWeatherImpactForecast = useCallback(async () => {
+    if (isWeatherImpactRunning.current) return;
+    const { weatherForecast, batterySOC, initialRange } = vehicleStateRef.current;
+
+    if (!weatherForecast) {
+        return;
+    }
+    isWeatherImpactRunning.current = true;
+    try {
+      const input: GetWeatherImpactInput = {
+        currentSOC: batterySOC,
+        initialRange: initialRange,
+        forecast: weatherForecast.list.map(item => ({
+          temp: item.main.temp,
+          precipitation: item.weather[0].main,
+          windSpeed: item.wind.speed,
+        })).slice(0, 5) // Ensure only 5 days are sent
+      };
+      const result = await getWeatherImpact(input);
+      setAiState({ weatherImpact: result });
+    } catch (error) {
+      console.error("Error calling getWeatherImpact:", error);
+      setAiState({ weatherImpact: null });
+    } finally {
+        isWeatherImpactRunning.current = false;
+    }
+  }, []);
 
   const updateVehicleState = useCallback(() => {
     const prevState = vehicleStateRef.current;
@@ -421,6 +445,12 @@ export function useVehicleSimulation() {
     };
   }, [triggerIdlePrediction, triggerAcImpactForecast]);
 
+  useEffect(() => {
+    if (vehicleState.weatherForecast) {
+      triggerWeatherImpactForecast();
+    }
+  }, [vehicleState.weatherForecast, triggerWeatherImpactForecast]);
+
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -464,3 +494,5 @@ export function useVehicleSimulation() {
     toggleGoodsInBoot,
   };
 }
+
+    

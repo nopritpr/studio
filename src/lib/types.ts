@@ -1,3 +1,4 @@
+import { z } from 'genkit';
 
 export type DriveMode = 'Eco' | 'City' | 'Sports';
 
@@ -190,6 +191,7 @@ export interface VehicleState {
   profiles: Record<string, Profile>;
   activeProfile: string;
   weather: WeatherData | null;
+  weatherForecast: FiveDayForecast | null;
   rangePenalties: RangePenalties;
 }
 
@@ -205,6 +207,29 @@ export interface AcUsageImpactOutput {
   recommendation: string;
 }
 
+const WeatherDayInputSchema = z.object({
+    temp: z.number().describe('The average temperature for the day in Celsius.'),
+    precipitation: z.string().describe('The type of precipitation (e.g., Rain, Snow, None).'),
+    windSpeed: z.number().describe('The average wind speed in km/h.'),
+});
+
+export const GetWeatherImpactInputSchema = z.object({
+  currentSOC: z.number().describe('The current battery State of Charge (percentage).'),
+  initialRange: z.number().describe('The vehicle\'s ideal range on a full charge in kilometers.'),
+  forecast: z.array(WeatherDayInputSchema).length(5).describe('A 5-day weather forecast.'),
+});
+export type GetWeatherImpactInput = z.infer<typeof GetWeatherImpactInputSchema>;
+
+export const GetWeatherImpactOutputSchema = z.object({
+  dailyImpacts: z.array(z.object({
+    day: z.string().describe('The day of the week (e.g., "Monday").'),
+    rangePenaltyKm: z.number().describe('The total estimated range penalty for that day in kilometers. Should be a negative number.'),
+    reason: z.string().describe('A brief, user-friendly explanation for the penalty.'),
+  })).length(5).describe('An array of 5 objects, each representing the weather impact for a day.'),
+});
+export type GetWeatherImpactOutput = z.infer<typeof GetWeatherImpactOutputSchema>;
+
+
 export interface AiState {
   drivingRecommendation: string;
   drivingRecommendationJustification: string | null;
@@ -214,4 +239,5 @@ export interface AiState {
   fatigueLevel: number;
   idleDrainPrediction: PredictiveIdleDrainOutput | null;
   acUsageImpact: AcUsageImpactOutput | null;
+  weatherImpact: GetWeatherImpactOutput | null;
 }

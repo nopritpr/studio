@@ -3,9 +3,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import EcoScoreGauge from "../charts/eco-score-gauge";
-import type { VehicleState, AiState } from "@/lib/types";
-import { Leaf, User, BrainCircuit, BarChart, Wind } from "lucide-react";
+import type { VehicleState, AiState, GetWeatherImpactOutput } from "@/lib/types";
+import { Leaf, User, BrainCircuit, BarChart, Wind, CloudSun, CloudRain, Snowflake, TrendingDown, Thermometer } from "lucide-react";
 import IdleDrainChart from "../charts/idle-drain-chart";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface OptimizationTabProps {
     state: VehicleState & AiState;
@@ -40,6 +41,55 @@ const AcImpactDisplay = ({ impact, recommendation }: { impact: number, recommend
   );
 };
 
+const WeatherImpactIcon = ({ reason }: { reason: string }) => {
+    const lowerReason = reason.toLowerCase();
+    if (lowerReason.includes('snow')) return <Snowflake className="w-5 h-5 text-blue-300" />;
+    if (lowerReason.includes('rain')) return <CloudRain className="w-5 h-5 text-blue-400" />;
+    if (lowerReason.includes('cold')) return <Thermometer className="w-5 h-5 text-blue-500" />;
+    if (lowerReason.includes('hot')) return <Thermometer className="w-5 h-5 text-red-500" />;
+    if (lowerReason.includes('wind')) return <Wind className="w-5 h-5 text-gray-400" />;
+    return <CloudSun className="w-5 h-5 text-yellow-500" />;
+};
+
+
+const WeatherImpactForecast = ({ data }: { data: GetWeatherImpactOutput | null }) => {
+    return (
+        <Card className="flex flex-col">
+            <CardHeader>
+                <CardTitle className="text-sm font-headline flex items-center gap-2"><TrendingDown className="w-4 h-4"/>Weather Impact Forecast</CardTitle>
+                <p className="text-xs text-muted-foreground -mt-2">5-day range penalty prediction.</p>
+            </CardHeader>
+            <CardContent className="flex-grow flex flex-col justify-center px-4 pb-4">
+                {data ? (
+                    <div className="space-y-2">
+                        {data.dailyImpacts.map(impact => (
+                             <div key={impact.day} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 text-xs">
+                                <span className="font-semibold">{impact.day}</span>
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                   <WeatherImpactIcon reason={impact.reason} />
+                                   <span>{impact.reason}</span>
+                                </div>
+                                <span className="font-mono font-semibold text-destructive justify-self-end">
+                                    {impact.rangePenaltyKm.toFixed(0)} km
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        <p className="text-sm text-center text-muted-foreground font-semibold">Waiting for Weather Forecast</p>
+                        <p className="text-xs text-center text-muted-foreground">The 5-day impact prediction will be generated once weather data is available.</p>
+                        <div className="space-y-2 pt-2">
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-4/5" />
+                        </div>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
 
 export default function OptimizationTab({ state, onProfileSwitchClick }: OptimizationTabProps) {
 
@@ -53,7 +103,7 @@ export default function OptimizationTab({ state, onProfileSwitchClick }: Optimiz
   };
 
   return (
-        <div className="h-full grid grid-cols-3 grid-rows-2 gap-4 min-h-0">
+        <div className="h-full grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4 min-h-0">
             <Card className="flex flex-col items-center justify-center">
                 <CardHeader className="items-center pb-2">
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><BarChart className="w-4 h-4"/>Eco-Driving Score</CardTitle>
@@ -66,19 +116,10 @@ export default function OptimizationTab({ state, onProfileSwitchClick }: Optimiz
                 </CardContent>
             </Card>
             
-            <Card className="flex flex-col items-center justify-center">
-                <CardHeader className="items-center">
-                    <CardTitle className="text-sm font-headline flex items-center gap-2"><Leaf className="w-4 h-4"/>Green Score</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                    <p className="text-5xl font-bold text-green-400 font-headline">
-                        {greenScore.toFixed(1)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">kg CO₂ saved vs ICE</p>
-                </CardContent>
-            </Card>
+             <WeatherImpactForecast data={state.weatherImpact} />
 
-            <Card className="p-4">
+
+            <Card className="p-4 row-start-3 md:row-start-auto">
                 <CardHeader className="flex-row items-center justify-between p-0 mb-2">
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><User className="w-4 h-4"/>User Profile</CardTitle>
                     <Button variant="link" className="text-xs h-auto p-0 text-primary" onClick={onProfileSwitchClick}>Switch / Manage</Button>
