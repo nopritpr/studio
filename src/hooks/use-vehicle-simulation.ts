@@ -71,10 +71,10 @@ export function useVehicleSimulation() {
               recentWhPerKm: currentState.recentWhPerKm > 0 ? currentState.recentWhPerKm : 160,
           };
           const acImpactResult = await getAcUsageImpact(acImpactInput);
-          setAiState({ acUsageImpact: acImpactResult });
+          setAiState(prevState => ({...prevState, acUsageImpact: acImpactResult }));
       } catch (error) {
           console.error("Error calling getAcUsageImpact:", error);
-          setAiState({acUsageImpact: null});
+          setAiState(prevState => ({...prevState, acUsageImpact: null}));
       } finally {
           isAcImpactRunning.current = false;
       }
@@ -417,12 +417,10 @@ export function useVehicleSimulation() {
   }, [triggerIdlePrediction]);
 
   useEffect(() => {
-    const acImpactDebounce = setTimeout(() => {
-        triggerAcImpactForecast();
-    }, 500);
-
-    return () => clearTimeout(acImpactDebounce);
-  }, [vehicleState.acOn, vehicleState.acTemp, vehicleState.outsideTemp, triggerAcImpactForecast]);
+    triggerAcImpactForecast(); // Run on initial mount
+    const acImpactInterval = setInterval(triggerAcImpactForecast, 5000);
+    return () => clearInterval(acImpactInterval);
+  }, [triggerAcImpactForecast, vehicleState.acOn, vehicleState.acTemp, vehicleState.outsideTemp]);
 
 
   useEffect(() => {
