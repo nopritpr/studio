@@ -368,7 +368,7 @@ export function useVehicleSimulation() {
         lastIdleSocRef.current = prevState.batterySOC;
       }
       // Apply phantom drain - accelerated for demo
-      const basePhantomDrainPerHour = 0.2 * 10; // 0.2% per hour, 10x speed
+      const basePhantomDrainPerHour = 2.0; // 2.0% per hour for demo
       let totalDrainPerHour = basePhantomDrainPerHour;
 
       // Add A/C drain
@@ -487,6 +487,9 @@ export function useVehicleSimulation() {
 
   // Continuous Idle Prediction
   useEffect(() => {
+    // Initial call right away
+    triggerIdlePrediction();
+    
     const intervalId = setInterval(() => {
       triggerIdlePrediction();
     }, 10000); // Run every 10 seconds
@@ -517,9 +520,6 @@ export function useVehicleSimulation() {
     
     requestRef.current = requestAnimationFrame(updateVehicleState);
 
-    // Initial call to get the first prediction
-    triggerIdlePrediction();
-
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
@@ -545,3 +545,5 @@ export function useVehicleSimulation() {
     refreshAiInsights,
   };
 }
+
+    
