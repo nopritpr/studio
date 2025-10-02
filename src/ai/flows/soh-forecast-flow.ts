@@ -26,6 +26,7 @@ const SohForecastInputSchema = z.object({
         .describe('Percentage of driving in Eco mode (0-100).'),
       cityPercent: z
         .number()
+
         .describe('Percentage of driving in City mode (0-100).'),
       sportsPercent: z
         .number()
@@ -89,12 +90,13 @@ const sohForecastFlow = ai.defineFlow(
         return [];
     }
 
+    const historicalWithSoh = input.historicalData.filter(d => typeof d.soh === 'number');
+
     // Combine historical and forecasted data
     const combinedData = [
-        ...input.historicalData.filter(d => d.soh !== undefined), // only include historical data with SOH
+        ...historicalWithSoh.map(d => ({ odometer: d.odometer, soh: d.soh! })),
         ...output
-    ].map(item => ({ odometer: item.odometer, soh: item.soh! }));
-
+    ];
 
     // Create a new array with unique odometer readings, preferring forecasted values for overlaps
     const dataMap = new Map<number, { odometer: number; soh: number }>();
@@ -110,5 +112,3 @@ const sohForecastFlow = ai.defineFlow(
     return uniqueData;
   }
 );
-
-    

@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Legend, Tooltip } from 'recharts';
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Legend, Tooltip, ReferenceLine } from 'recharts';
 import {
   ChartContainer,
   ChartTooltipContent,
@@ -38,18 +38,20 @@ export default function SohForecastChart({ data, currentOdometer }: SohForecastC
   }
 
   const historicalData = data.filter(d => d.odometer <= currentOdometer);
-  const lastHistoricalPoint = historicalData[historicalData.length - 1];
+  const lastHistoricalPoint = historicalData.length > 0 ? historicalData[historicalData.length - 1] : null;
 
   const forecastData = data.filter(d => d.odometer >= currentOdometer);
   // Ensure the forecast line connects to the historical line
   if (lastHistoricalPoint && forecastData.length > 0 && forecastData[0].odometer > lastHistoricalPoint.odometer) {
     forecastData.unshift(lastHistoricalPoint);
   }
+  
+  const combinedData = [...historicalData, ...forecastData];
 
   return (
     <ChartContainer config={chartConfig} className="w-full h-full">
       <AreaChart
-        data={data}
+        data={combinedData}
         margin={{
           top: 10,
           right: 30,
@@ -80,7 +82,7 @@ export default function SohForecastChart({ data, currentOdometer }: SohForecastC
         <Tooltip
           content={
             <ChartTooltipContent
-              labelFormatter={(value, payload) => payload[0] ? `${payload[0].payload.odometer.toLocaleString()} km` : value}
+              labelFormatter={(value, payload) => payload[0] ? `${Math.round(payload[0].payload.odometer).toLocaleString()} km` : value}
               formatter={(value, name) => [`${(value as number).toFixed(1)}%`, name === 'soh' ? 'SOH' : name]}
             />
           }
@@ -102,7 +104,7 @@ export default function SohForecastChart({ data, currentOdometer }: SohForecastC
                 <stop offset="95%" stopColor={chartConfig.forecast.color} stopOpacity={0.1} />
             </linearGradient>
         </defs>
-        {historicalData.length > 1 && <Area
+        <Area
           type="monotone"
           dataKey="soh"
           data={historicalData}
@@ -111,9 +113,8 @@ export default function SohForecastChart({ data, currentOdometer }: SohForecastC
           fillOpacity={1}
           fill="url(#fillHistorical)"
           name="Historical SOH"
-          isAnimationActive={false}
-        />}
-        {forecastData.length > 1 && <Area
+        />
+        <Area
           type="monotone"
           dataKey="soh"
           data={forecastData}
@@ -123,11 +124,9 @@ export default function SohForecastChart({ data, currentOdometer }: SohForecastC
           fillOpacity={1}
           fill="url(#fillForecast)"
           name="Forecasted SOH"
-          isAnimationActive={false}
-        />}
+        />
+        <ReferenceLine x={currentOdometer} stroke="hsl(var(--destructive))" strokeDasharray="3 3" />
       </AreaChart>
     </ChartContainer>
   );
 }
-
-    

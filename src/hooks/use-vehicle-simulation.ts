@@ -22,10 +22,9 @@ function stateReducer(state: VehicleState, action: Partial<VehicleState>): Vehic
 }
 
 const generateInitialSohHistory = (): SohHistoryEntry[] => {
-  // Simulate a 4-year-old car with ~80,000 km
   const history: SohHistoryEntry[] = [];
   const startOdometer = 80000;
-  const startSoh = 92; // Realistic SOH after 4 years
+  const startSoh = 92;
   const startCycles = 400;
 
   for (let i = 0; i <= 10; i++) {
@@ -36,9 +35,9 @@ const generateInitialSohHistory = (): SohHistoryEntry[] => {
       cycleCount: (startCycles / 10) * i,
       avgBatteryTemp: 25 + Math.random() * 5,
       soh: 100 - sohDecline,
-      ecoPercent: 60,
-      cityPercent: 30,
-      sportsPercent: 10,
+      ecoPercent: 60 + Math.random() * 10,
+      cityPercent: 30 - Math.random() * 5,
+      sportsPercent: 10 - Math.random() * 5,
     });
   }
   return history;
@@ -75,7 +74,8 @@ export function useVehicleSimulation() {
 
   const callSohForecast = useCallback(async () => {
     const currentState = stateRef.current;
-    if (Date.now() - lastSohCheck.current < 60000) return; // run every 60s
+    if (currentState.sohHistory.length < 2) return;
+    if (Date.now() - lastSohCheck.current < 60000 && currentState.sohForecast.length > 0) return; // run every 60s, but always run first time
     lastSohCheck.current = Date.now();
 
     try {
@@ -123,7 +123,7 @@ export function useVehicleSimulation() {
     }
   }, []);
 
-  const callAI = async () => {
+  const callAI = useCallback(async () => {
     const currentState = stateRef.current;
      if (
       currentState.batterySOC === null ||
@@ -183,7 +183,7 @@ export function useVehicleSimulation() {
     } catch (error) {
       console.error('AI Flow error:', error);
     }
-  };
+  }, []);
 
   const setDriveMode = (mode: DriveMode) => {
     setState({ driveMode: mode });
@@ -449,8 +449,10 @@ export function useVehicleSimulation() {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     
-    // Initial call to populate SOH forecast
+    // Initial calls for AI features
     callSohForecast();
+    callAI();
+    callFatigueMonitor();
 
     requestRef.current = requestAnimationFrame(updateVehicleState);
     const aiTimer = setInterval(callAI, 10000);
@@ -488,3 +490,4 @@ export function useVehicleSimulation() {
     
 
     
+
