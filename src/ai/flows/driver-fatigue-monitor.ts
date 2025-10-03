@@ -96,12 +96,16 @@ const driverFatigueMonitorFlow = ai.defineFlow(
     const accelInconsistency = accelerationHistory.length > 1 ? accelChanges / (accelerationHistory.length - 1) : 0;
     
     // --- Step 4: Fatigue Confidence Calculation ---
+    // A negative base intercept ensures confidence is not zero for perfect driving.
+    const B0 = -2.5;
     // Weights are adjusted to make the model more sensitive to driver input.
     const w1 = 0.4; // weight for speed_variance
     const w2 = 15.0; // weight for brake_frequency (increased significantly)
     const w3 = 0.8; // weight for accel_inconsistency (increased)
-    const z = (w1 * speedVariance) + (w2 * brakeFrequency) + (w3 * accelInconsistency);
-
+    
+    const z = B0 + (w1 * speedVariance) + (w2 * brakeFrequency) + (w3 * accelInconsistency);
+    
+    // Sigmoid function to map Z-score to a probability (0-1)
     const fatigueConfidence = 1 / (1 + Math.exp(-z));
     
     // Step 5: Use the AI *only* to generate the human-friendly reasoning text.
