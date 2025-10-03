@@ -80,10 +80,6 @@ const acUsageImpactFlow = ai.defineFlow(
     const dutyCycle = Math.min(1.0, tempDiff / 10.0);
     const actualAcPower = dutyCycle * MAX_AC_POWER_KW;
 
-    // Calculate Physics-Based Range Loss
-    const energyConsumedWh = actualAcPower * DURATION_HOURS * 1000;
-    const rangeLossKm = energyConsumedWh / vehicleEfficiency;
-
     // Apply Regression Coefficients for a more nuanced prediction
     const B0 = -2.5; // base intercept
     const B1 = 2.1; // temperature coefficient
@@ -92,13 +88,13 @@ const acUsageImpactFlow = ai.defineFlow(
     
     let regressionImpact = B0 + (B1 * tempDiff) + (B2 * actualAcPower) + (B3 * vehicleEfficiency);
     
-    // Ensure the impact is realistic and non-negative
+    // Ensure the impact is realistic
     regressionImpact = Math.max(0, regressionImpact);
 
     // --- Step 2: Determine Final Output based on A/C status ---
     // If A/C is ON, the impact is a loss (negative).
     // If A/C is OFF, we show the potential impact *if it were turned on* (also as a negative, representing potential loss).
-    const finalImpactKm = -Math.abs(regressionImpact);
+    const finalImpactKm = acOn ? -Math.abs(regressionImpact) : -Math.abs(regressionImpact);
 
     // --- Step 3: Use the AI *only* to generate the human-friendly recommendation text. ---
     const { output } = await recommendationPrompt({
@@ -111,7 +107,6 @@ const acUsageImpactFlow = ai.defineFlow(
     const recommendation = output?.recommendation ?? "Adjust A/C for optimal range.";
 
     return {
-      // Return the direct physics-based calculation as the primary metric.
       rangeImpactKm: parseFloat(finalImpactKm.toFixed(1)),
       recommendation: recommendation,
     };
