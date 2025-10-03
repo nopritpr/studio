@@ -42,12 +42,12 @@ const recommendationPrompt = ai.definePrompt({
   name: 'acUsageRecommendationPrompt',
   input: {schema: RecommendationPromptInputSchema},
   output: {schema: z.object({ recommendation: z.string() })},
-  prompt: `You are an EV energy efficiency expert. Based on the calculated hourly range impact of {{calculatedImpact}} km, provide a single, concise, and helpful recommendation. The user's A/C is currently {{#if acOn}}On{{else}}Off{{/if}} at a setting of {{acTemp}}°C.
+  prompt: `You are an EV energy efficiency expert. Based on the calculated hourly range impact of {{calculatedImpact}} km, provide a single, concise, and helpful recommendation. The user's A/C is currently {{#if acOn}}On at {{acTemp}}°C{{else}}Off{{/if}}.
 
 Example Recommendations:
 - If impact is high and negative: "High A/C usage is significantly reducing your range. Consider increasing the temperature to save range."
 - If impact is low: "Your A/C usage is efficient. No changes needed."
-- If A/C is off, but the potential impact is high: "Turning on the A/C now would reduce your range by approximately {{calculatedImpact}} km per hour."
+- If A/C is off, but the potential impact of turning it on is high: "Turning on the A/C now would reduce your range by approximately {{calculatedImpact}} km per hour."
 
 Generate ONLY the JSON object with the 'recommendation' field. Be creative and helpful.`,
 });
@@ -76,25 +76,15 @@ const acUsageImpactFlow = ai.defineFlow(
     const energyConsumedWh = actualAcPower * 1 * 1000;
     const rangeLossKm = energyConsumedWh / vehicleEfficiency;
 
-    // --- Step 2: Apply the separate Regression Formula for a more nuanced impact value ---
-    const b0 = -2.5;  // base intercept
-    const b1 = 2.1;   // temperature coefficient
-    const b2 = 5.8;   // power coefficient
-    const b3 = -0.03; // efficiency coefficient
-
-    // Note: The regression can produce different results from the direct physics model. We use it as the primary "impact" score.
-    const regressionImpact = b0 + (b1 * tempDiff) + (b2 * actualAcPower) + (b3 * vehicleEfficiency);
-
-    // --- Step 3: Determine Final Output based on A/C status ---
+    // --- Step 2: Determine Final Output based on A/C status ---
     // If A/C is ON, the impact is a loss (negative).
-    // If A/C is OFF, we show the potential impact *if it were turned on*, so it's also a negative context for the recommendation.
-    const finalImpactKm = acOn ? -Math.abs(rangeLossKm) : Math.abs(rangeLossKm);
-    
+    // If A/C is OFF, we show the potential impact *if it were turned on*.
     // The recommendation should be based on the potential loss.
+    const finalImpactKm = acOn ? -Math.abs(rangeLossKm) : Math.abs(rangeLossKm);
     const recommendationContextImpact = -Math.abs(rangeLossKm);
 
 
-    // --- Step 4: Use the AI *only* to generate the human-friendly recommendation text. ---
+    // --- Step 3: Use the AI *only* to generate the human-friendly recommendation text. ---
     const { output } = await recommendationPrompt({
       acOn: acOn,
       acTemp: acTemp,

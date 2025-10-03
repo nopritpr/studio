@@ -59,9 +59,6 @@ export function useVehicleSimulation() {
     aiStateRef.current = aiState;
   }, [aiState]);
 
-  // This is the corrected effect for triggering the A/C impact forecast.
-  // It will now correctly re-run whenever the A/C state, temperature,
-  // outside temperature, or efficiency changes.
   useEffect(() => {
     const triggerAcImpactForecast = async () => {
       try {
@@ -81,7 +78,6 @@ export function useVehicleSimulation() {
     };
     
     triggerAcImpactForecast();
-    // Dependency array ensures this effect re-runs when these values change.
   }, [vehicleState.acOn, vehicleState.acTemp, vehicleState.outsideTemp, vehicleState.recentWhPerKm]);
 
 
@@ -522,5 +518,3 @@ export function useVehicleSimulation() {
     toggleGoodsInBoot,
   };
 }
-
-    
