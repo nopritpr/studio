@@ -60,31 +60,31 @@ export function useVehicleSimulation() {
   }, [aiState]);
 
   const isAcImpactRunning = useRef(false);
-  const triggerAcImpactForecast = async () => {
-    if (isAcImpactRunning.current) return;
-    isAcImpactRunning.current = true;
+  useEffect(() => {
+    const triggerAcImpactForecast = async () => {
+      if (isAcImpactRunning.current) return;
+      isAcImpactRunning.current = true;
+      try {
+        const currentState = vehicleStateRef.current;
+        const acImpactInput: AcUsageImpactInput = {
+            acOn: currentState.acOn,
+            acTemp: currentState.acTemp,
+            outsideTemp: currentState.outsideTemp,
+            recentWhPerKm: currentState.recentWhPerKm > 0 ? currentState.recentWhPerKm : 160,
+        };
+        const acImpactResult = await getAcUsageImpact(acImpactInput);
+        setAiState({ acUsageImpact: acImpactResult });
+      } catch (error) {
+          console.error("Error calling getAcUsageImpact:", error);
+          setAiState({ acUsageImpact: null });
+      } finally {
+          isAcImpactRunning.current = false;
+      }
+    };
+    
+    triggerAcImpactForecast();
+  }, [vehicleState.acOn, vehicleState.acTemp, vehicleState.outsideTemp, vehicleState.recentWhPerKm]);
 
-    // Use a slight delay to get the most up-to-date state from the ref
-    // This is a workaround for the state update being queued.
-    setTimeout(async () => {
-        try {
-            const currentState = vehicleStateRef.current;
-            const acImpactInput: AcUsageImpactInput = {
-                acOn: currentState.acOn,
-                acTemp: currentState.acTemp,
-                outsideTemp: currentState.outsideTemp,
-                recentWhPerKm: currentState.recentWhPerKm > 0 ? currentState.recentWhPerKm : 160,
-            };
-            const acImpactResult = await getAcUsageImpact(acImpactInput);
-            setAiState({ acUsageImpact: acImpactResult });
-        } catch (error) {
-            console.error("Error calling getAcUsageImpact:", error);
-            setAiState({ acUsageImpact: null });
-        } finally {
-            isAcImpactRunning.current = false;
-        }
-    }, 100);
-  };
 
   const setDriveMode = (mode: DriveMode) => {
     setVehicleState({ driveMode: mode, driveModeHistory: [mode, ...vehicleStateRef.current.driveModeHistory].slice(0, 50) as DriveMode[] });
@@ -92,12 +92,10 @@ export function useVehicleSimulation() {
 
   const toggleAC = () => {
      setVehicleState({ acOn: !vehicleStateRef.current.acOn });
-     triggerAcImpactForecast();
   };
 
   const setAcTemp = (temp: number) => {
     setVehicleState({ acTemp: temp });
-    triggerAcImpactForecast();
   }
 
   const setPassengers = (count: number) => {
@@ -400,9 +398,6 @@ export function useVehicleSimulation() {
   
   // AI Effects
   useEffect(() => {
-    triggerIdlePrediction();
-    triggerAcImpactForecast();
-
     const fatigueCheckInterval = setInterval(async () => {
         const isFatigueCheckRunning = { current: false };
         if (isFatigueCheckRunning.current) return;
