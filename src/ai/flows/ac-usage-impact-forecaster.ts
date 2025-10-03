@@ -11,7 +11,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 
 const AcUsageImpactInputSchema = z.object({
   acOn: z.boolean().describe('Whether the A/C is currently active.'),
@@ -22,7 +21,7 @@ const AcUsageImpactInputSchema = z.object({
 export type AcUsageImpactInput = z.infer<typeof AcUsageImpactInputSchema>;
 
 const AcUsageImpactOutputSchema = z.object({
-  rangeImpactKm: z.number().describe('The predicted range change in kilometers over the next hour, based on a regression model. Positive if range is gained (e.g., by turning A/C off), negative if lost (e.g., by turning A/C on).'),
+  rangeImpactKm: z.number().describe('The predicted range change in kilometers over the next hour. Positive if range is gained (e.g., by turning A/C off), negative if lost (e.g., by turning A/C on).'),
   recommendation: z.string().describe('A brief, actionable recommendation based on the A/C impact.'),
 });
 export type AcUsageImpactOutput = z.infer<typeof AcUsageImpactOutputSchema>;
@@ -31,49 +30,29 @@ export async function getAcUsageImpact(input: AcUsageImpactInput): Promise<AcUsa
   return acUsageImpactFlow(input);
 }
 
-const acUsageImpactPrompt = ai.definePrompt({
-  name: 'acUsageImpactPrompt',
-  input: {schema: AcUsageImpactInputSchema},
-  output: {schema: AcUsageImpactOutputSchema},
-  config: {
-    model: googleAI.model('gemini-pro'),
-  },
-  prompt: `You are an EV energy regression model. Your task is to calculate the range impact of the A/C over the next hour using a specific regression formula.
+// Define a new input schema for the recommendation prompt, which includes the calculated impact.
+const RecommendationPromptInputSchema = AcUsageImpactInputSchema.extend({
+    calculatedImpact: z.number()
+});
 
-Current Vehicle & Environmental Data:
-- A/C Status: {{#if acOn}}On{{else}}Off{{/if}} (acOn: {{acOn}})
+const recommendationPrompt = ai.definePrompt({
+  name: 'acUsageRecommendationPrompt',
+  input: {schema: RecommendationPromptInputSchema},
+  output: {schema: z.object({ recommendation: z.string() })},
+  prompt: `You are an EV energy efficiency expert. Based on the calculated range impact of the A/C, provide a single, concise, and helpful recommendation.
+
+Data:
+- A/C Status: {{#if acOn}}On{{else}}Off{{/if}}
 - A/C Temperature: {{acTemp}}°C
 - Outside Temperature: {{outsideTemp}}°C
-- Recent Efficiency: {{recentWhPerKm}} Wh/km
+- Calculated Hourly Range Impact: {{calculatedImpact}} km
 
-Regression Model:
-Range_Impact = β₀ + β₁×Temp_Diff + β₂×AC_Power + β₃×Efficiency
+Example Recommendations:
+- If impact is high and negative: "High A/C usage is significantly reducing your range. Consider increasing the temperature to 24°C to save approximately X km/hour."
+- If impact is low: "Your A/C usage is efficient. No changes needed."
+- If A/C is off: "Turning on the A/C now would reduce your range by approximately {{calculatedImpact}} km per hour."
 
-Coefficients:
-β₀ = -2.5
-β₁ = 2.1
-β₂ = 5.8
-β₃ = -0.03
-Max_AC_Power = 3.0 kW
-
-Follow these steps precisely:
-1.  **Calculate Temperature Differential (Temp_Diff)**:
-    Temp_Diff = abs({{outsideTemp}} - {{acTemp}})
-
-2.  **Calculate A/C Power Consumption (AC_Power)**:
-    Duty_Cycle = min(1.0, Temp_Diff / 10.0)
-    AC_Power (kW) = Duty_Cycle × 3.0
-
-3.  **Apply the Regression Formula**:
-    Calculated_Impact = -2.5 + (2.1 * Temp_Diff) + (5.8 * AC_Power) + (-0.03 * {{recentWhPerKm}})
-
-4.  **Determine Final Output**:
-    - If the A/C is ON ('{{acOn}}' is true), the 'rangeImpactKm' is the 'Calculated_Impact' as a NEGATIVE number, because range is being lost.
-    - If the A/C is OFF ('{{acOn}}' is false), the 'rangeImpactKm' is the 'Calculated_Impact' as a POSITIVE number, representing the potential range loss if it were turned on.
-    - The final 'rangeImpactKm' value should be rounded to one decimal place.
-    - Generate a helpful, concise 'recommendation' based on the impact. For example, if A/C is on, suggest increasing the temperature to save range.
-
-Execute the calculation with the provided data and return ONLY the JSON object.`,
+Generate ONLY the JSON object with the 'recommendation' field.`,
 });
 
 const acUsageImpactFlow = ai.defineFlow(
@@ -82,8 +61,43 @@ const acUsageImpactFlow = ai.defineFlow(
     inputSchema: AcUsageImpactInputSchema,
     outputSchema: AcUsageImpactOutputSchema,
   },
-  async input => {
-    const {output} = await acUsageImpactPrompt(input);
-    return output!;
+  async (input) => {
+    // Perform the regression calculation directly in TypeScript for reliability.
+    const { acOn, acTemp, outsideTemp, recentWhPerKm } = input;
+
+    // Regression Coefficients
+    const b0 = -2.5; // intercept
+    const b1 = 2.1;  // temperature coefficient
+    const b2 = 5.8;  // power coefficient
+    const b3 = -0.03; // efficiency coefficient
+    const MAX_AC_POWER_KW = 3.0;
+
+    // Step 1: Calculate Temperature Differential
+    const tempDiff = Math.abs(outsideTemp - acTemp);
+
+    // Step 2: Calculate A/C Power Consumption
+    const dutyCycle = Math.min(1.0, tempDiff / 10.0);
+    const acPower = dutyCycle * MAX_AC_POWER_KW;
+
+    // Step 3: Apply the Regression Formula
+    const calculatedImpact = b0 + (b1 * tempDiff) + (b2 * acPower) + (b3 * recentWhPerKm);
+
+    // Step 4: Determine Final Output based on A/C status
+    // If A/C is on, the impact is a loss (negative).
+    // If A/C is off, we show the potential loss if it were turned on (so we still use the negative value for the recommendation context).
+    const rangeImpactKm = acOn ? -Math.abs(calculatedImpact) : Math.abs(calculatedImpact);
+
+    // Use the AI only to generate the human-friendly recommendation text.
+    const { output } = await recommendationPrompt({
+      ...input,
+      calculatedImpact: -Math.abs(calculatedImpact), // Always pass the potential loss to the AI
+    });
+
+    const recommendation = output?.recommendation ?? "Adjust A/C for optimal range.";
+
+    return {
+      rangeImpactKm: parseFloat(rangeImpactKm.toFixed(1)),
+      recommendation: recommendation,
+    };
   }
 );
