@@ -61,12 +61,12 @@ export function useVehicleSimulation() {
 
   const isAcImpactRunning = useRef(false);
   const triggerAcImpactForecast = useCallback(async () => {
-      if (isAcImpactRunning.current) return;
-      isAcImpactRunning.current = true;
-
-      try {
-          // Use a slight delay to ensure the state has updated before we read it
-          setTimeout(async () => {
+    if (isAcImpactRunning.current) return;
+    isAcImpactRunning.current = true;
+    
+    // Use a slight delay to get the most up-to-date state from the ref
+    setTimeout(async () => {
+        try {
             const currentState = vehicleStateRef.current;
             const acImpactInput: AcUsageImpactInput = {
                 acOn: currentState.acOn,
@@ -76,13 +76,13 @@ export function useVehicleSimulation() {
             };
             const acImpactResult = await getAcUsageImpact(acImpactInput);
             setAiState({ acUsageImpact: acImpactResult });
+        } catch (error) {
+            console.error("Error calling getAcUsageImpact:", error);
+            setAiState({ acUsageImpact: null });
+        } finally {
             isAcImpactRunning.current = false;
-          }, 100);
-      } catch (error) {
-          console.error("Error calling getAcUsageImpact:", error);
-          setAiState({ acUsageImpact: null});
-          isAcImpactRunning.current = false;
-      }
+        }
+    }, 100);
   }, []);
 
   const setDriveMode = (mode: DriveMode) => {
