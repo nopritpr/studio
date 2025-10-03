@@ -2,7 +2,7 @@
 'use server';
 
 /**
- * @fileOverview Predicts the impact of A/C usage on driving range.
+ * @fileOverview Predicts the impact of A/C usage on driving range using a regression model.
  *
  * - getAcUsageImpact - A function that returns the predicted range impact of A/C usage.
  * - AcUsageImpactInput - The input type for the getAcUsageImpact function.
@@ -22,8 +22,8 @@ const AcUsageImpactInputSchema = z.object({
 export type AcUsageImpactInput = z.infer<typeof AcUsageImpactInputSchema>;
 
 const AcUsageImpactOutputSchema = z.object({
-  rangeImpactKm: z.number().describe('The predicted range change in kilometers over the next hour. Positive if range is gained (e.g., by turning A/C off), negative if lost (e.g., by turning A/C on).'),
-  recommendation: z.string().describe('A brief recommendation based on the A/C impact.'),
+  rangeImpactKm: z.number().describe('The predicted range change in kilometers over the next hour, based on a regression model. Positive if range is gained (e.g., by turning A/C off), negative if lost (e.g., by turning A/C on).'),
+  recommendation: z.string().describe('A brief, actionable recommendation based on the A/C impact.'),
 });
 export type AcUsageImpactOutput = z.infer<typeof AcUsageImpactOutputSchema>;
 
@@ -38,36 +38,48 @@ const acUsageImpactPrompt = ai.definePrompt({
   config: {
     model: googleAI.model('gemini-pro'),
   },
-  prompt: `You are an EV energy regression model. Your task is to calculate the range impact of the A/C over the next hour.
+  prompt: `You are an EV energy regression model. Your task is to calculate the range impact of the A/C over the next hour using a specific regression formula.
 
 Current Vehicle & Environmental Data:
 - A/C Status: {{#if acOn}}On ({{acTemp}}°C){{else}}Off{{/if}}
 - Outside Temperature: {{outsideTemp}}°C
 - Recent Efficiency: {{recentWhPerKm}} Wh/km
 
-Follow these steps:
-1.  **Calculate A/C Power Draw**:
-    - The A/C consumes 1.5 kW (1500 Watts) of power when running.
-    - Its duty cycle (how often it runs) depends on the temperature difference. Duty Cycle = min(1.0, abs(outsideTemp - acTemp) / 10.0).
-    - Power Draw (Watts) = 1500 * Duty Cycle.
+Regression Model:
+Range_Impact = β₀ + β₁×Temp_Diff + β₂×AC_Power + β₃×Efficiency
 
-2.  **Calculate Energy Cost over One Hour**:
-    - Energy (Wh) = Power Draw (Watts) * 1 hour.
+Coefficients:
+β₀ = -2.5 (base intercept)
+β₁ = 2.1 (temperature difference coefficient)
+β₂ = 5.8 (power consumption coefficient)
+β₃ = -0.03 (efficiency coefficient)
 
-3.  **Calculate Range Impact**:
-    - Range Impact (km) = Energy (Wh) / Recent Efficiency (Wh/km).
+Follow these steps precisely:
+1.  **Calculate Temperature Differential (Temp_Diff)**:
+    - Temp_Diff = abs(outsideTemp - acTemp)
 
-4.  **Determine Output**:
-    - If the A/C is ON, the 'rangeImpactKm' is the calculated range impact, but negative, because range is being lost. The recommendation should suggest turning it off to save range.
-    - If the A/C is OFF, the 'rangeImpactKm' is the calculated range impact (a positive number), representing the range that would be lost if it were turned on. The recommendation should state the potential range loss.
+2.  **Calculate A/C Power Consumption (AC_Power)**:
+    - The maximum A/C power is 3 kW.
+    - The A/C's duty cycle depends on the temperature difference.
+    - Duty_Cycle = min(1.0, Temp_Diff / 10.0).
+    - AC_Power (kW) = Duty_Cycle × 3.0 kW.
 
-Let's do a step-by-step calculation:
-- Duty Cycle = min(1.0, abs({{outsideTemp}} - {{acTemp}}) / 10.0)
-- Power Draw = 1500 * Duty Cycle
-- Energy Cost (1 hour) = Power Draw
-- Range Impact = Energy Cost / {{recentWhPerKm}}
+3.  **Apply the Regression Formula**:
+    - Use the calculated Temp_Diff and AC_Power, and the provided Recent Efficiency.
+    - Range_Impact = -2.5 + (2.1 * Temp_Diff) + (5.8 * AC_Power) + (-0.03 * recentWhPerKm)
 
-Based on the A/C status ('{{acOn}}'), set the final 'rangeImpactKm' and 'recommendation'. Return ONLY the JSON object.`,
+4.  **Determine Final Output**:
+    - If the A/C is ON ('{{acOn}}' is true), the 'rangeImpactKm' is the calculated Range_Impact, but as a negative number, because range is being lost. The recommendation should suggest an action to reduce this loss (e.g., increasing the target temperature).
+    - If the A/C is OFF ('{{acOn}}' is false), the 'rangeImpactKm' is the calculated Range_Impact as a positive number, representing the range that would be lost if it were turned on. The recommendation should state this potential loss.
+    - The final 'rangeImpactKm' value should be rounded to one decimal place.
+
+Let's do a step-by-step calculation with the provided data:
+- Temp_Diff = abs({{outsideTemp}} - {{acTemp}})
+- Duty_Cycle = min(1.0, Temp_Diff / 10.0)
+- AC_Power = Duty_Cycle * 3.0
+- Calculated Range_Impact = -2.5 + (2.1 * Temp_Diff) + (5.8 * AC_Power) + (-0.03 * {{recentWhPerKm}})
+
+Now, determine the final 'rangeImpactKm' and 'recommendation' based on the A/C status. Return ONLY the JSON object.`,
 });
 
 const acUsageImpactFlow = ai.defineFlow(
