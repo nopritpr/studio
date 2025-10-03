@@ -75,12 +75,12 @@ export function useVehicleSimulation() {
                 recentWhPerKm: currentState.recentWhPerKm > 0 ? currentState.recentWhPerKm : 160,
             };
             const acImpactResult = await getAcUsageImpact(acImpactInput);
-            setAiState(prevState => ({...prevState, acUsageImpact: acImpactResult }));
+            setAiState({ acUsageImpact: acImpactResult });
             isAcImpactRunning.current = false;
           }, 100);
       } catch (error) {
           console.error("Error calling getAcUsageImpact:", error);
-          setAiState(prevState => ({...prevState, acUsageImpact: null}));
+          setAiState({ acUsageImpact: null});
           isAcImpactRunning.current = false;
       }
   }, []);

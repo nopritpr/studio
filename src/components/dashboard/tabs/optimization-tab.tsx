@@ -27,11 +27,6 @@ const AcImpactDisplay = ({ impact, recommendation }: { impact: number, recommend
 
   return (
     <div className="p-3 rounded-lg flex flex-col items-center justify-center text-center gap-1 bg-muted/50 border border-border/50 h-full">
-       <div className="flex items-center gap-2 text-primary">
-            <Wind size={16} />
-            <h5 className="font-semibold text-foreground">A/C Impact</h5>
-       </div>
-       <p className="text-xs text-muted-foreground -mt-1 mb-2">A regression model predicts range change based on A/C settings and temperature.</p>
        <p className={`text-3xl font-bold font-headline ${colorClass}`}>
         {isGain ? '+' : '-'}{displayValue} km
        </p>
@@ -120,6 +115,7 @@ export default function OptimizationTab({ state, onProfileSwitchClick }: Optimiz
             <Card className="p-4 flex flex-col">
                  <CardHeader className="p-0 pb-2">
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><Wind className="w-4 h-4"/>A/C Usage Impact</CardTitle>
+                    <p className="text-xs text-muted-foreground -mt-2">A regression model predicts range change based on A/C settings and temperature.</p>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col p-0 pt-2 min-h-0">
                      <div className="flex-grow">
