@@ -59,10 +59,12 @@ export function useVehicleSimulation() {
     aiStateRef.current = aiState;
   }, [aiState]);
 
+  // This is the corrected effect for A/C impact forecasting.
   useEffect(() => {
     const triggerAcImpactForecast = async () => {
+      // Use a local copy of the state to avoid stale closures
+      const currentState = vehicleStateRef.current;
       try {
-        const currentState = vehicleStateRef.current;
         const acImpactInput: AcUsageImpactInput = {
             acOn: currentState.acOn,
             acTemp: currentState.acTemp,
@@ -77,6 +79,7 @@ export function useVehicleSimulation() {
       }
     };
     
+    // Call it immediately on mount and whenever dependencies change.
     triggerAcImpactForecast();
   }, [vehicleState.acOn, vehicleState.acTemp, vehicleState.outsideTemp, vehicleState.recentWhPerKm]);
 
