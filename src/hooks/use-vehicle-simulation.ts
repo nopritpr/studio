@@ -59,11 +59,11 @@ export function useVehicleSimulation() {
     aiStateRef.current = aiState;
   }, [aiState]);
 
-  const isAcImpactRunning = useRef(false);
+  // This is the corrected effect for triggering the A/C impact forecast.
+  // It will now correctly re-run whenever the A/C state, temperature,
+  // outside temperature, or efficiency changes.
   useEffect(() => {
     const triggerAcImpactForecast = async () => {
-      if (isAcImpactRunning.current) return;
-      isAcImpactRunning.current = true;
       try {
         const currentState = vehicleStateRef.current;
         const acImpactInput: AcUsageImpactInput = {
@@ -77,12 +77,11 @@ export function useVehicleSimulation() {
       } catch (error) {
           console.error("Error calling getAcUsageImpact:", error);
           setAiState({ acUsageImpact: null });
-      } finally {
-          isAcImpactRunning.current = false;
       }
     };
     
     triggerAcImpactForecast();
+    // Dependency array ensures this effect re-runs when these values change.
   }, [vehicleState.acOn, vehicleState.acTemp, vehicleState.outsideTemp, vehicleState.recentWhPerKm]);
 
 
@@ -523,5 +522,3 @@ export function useVehicleSimulation() {
     toggleGoodsInBoot,
   };
 }
-
-    
