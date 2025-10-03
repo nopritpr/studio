@@ -3,7 +3,7 @@
 
 /**
  * @fileOverview An AI agent that monitors driving patterns for signs of fatigue.
- * This represents an LSTM Autoencoder anomaly detection model.
+ * This simulates an LSTM Autoencoder anomaly detection model by calculating specific metrics.
  *
  * - monitorDriverFatigue - A function that analyzes driving data and detects fatigue.
  * - DriverFatigueInput - The input type for the monitorDriverFatigue function.
@@ -12,13 +12,10 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 
 const DriverFatigueInputSchema = z.object({
   speedHistory: z.array(z.number()).describe('The history of the driver speed in km/h over the last 60 seconds.'),
   accelerationHistory: z.array(z.number()).describe('The history of the driver acceleration in m/s^2 over the last 60 seconds.'),
-  harshBrakingEvents: z.number().describe('Number of harsh braking events in the last minute.'),
-  harshAccelerationEvents: z.number().describe('Number of harsh acceleration events in the last minute.'),
 });
 export type DriverFatigueInput = z.infer<typeof DriverFatigueInputSchema>;
 
@@ -33,30 +30,34 @@ export async function monitorDriverFatigue(input: DriverFatigueInput): Promise<D
   return driverFatigueMonitorFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'driverFatigueMonitorPrompt',
-  input: {schema: DriverFatigueInputSchema},
-  output: {schema: DriverFatigueOutputSchema},
-  config: {
-    model: googleAI.model('gemini-pro'),
-  },
-  prompt: `You are an expert AI system designed to detect driver fatigue by analyzing vehicle telemetry, simulating an LSTM Autoencoder for anomaly detection. Your primary goal is to identify driving patterns that deviate from normal, alert driving.
-
-Analyze the following time-series data from the last 60 seconds:
-
-- Speed History (km/h): {{{json speedHistory}}}
-- Acceleration History (m/s^2): {{{json accelerationHistory}}}
-- Harsh Braking Events: {{harshBrakingEvents}}
-- Harsh Acceleration Events: {{harshAccelerationEvents}}
-
-Normal driving is characterized by smooth control inputs and consistent speed. Fatigue is often indicated by:
-- High variance in speed (difficulty maintaining a constant speed).
-- Frequent, small, jerky steering corrections (not directly measured, but implied by erratic acceleration/deceleration).
-- Sudden, sharp braking or acceleration events after a period of calm (over-correction).
-- A general increase in erratic or inconsistent control inputs compared to a learned baseline.
-
-Based on your analysis, determine if the driver's behavior is anomalous and consistent with fatigue. Set 'isFatigued' to true if you detect fatigue, and provide your confidence and a brief reasoning.`,
+// A new, simplified schema for the reasoning prompt.
+const ReasoningPromptInputSchema = z.object({
+    fatigueConfidence: z.number(),
+    speedVariance: z.number(),
+    brakeFrequency: z.number(),
+    accelInconsistency: z.number(),
 });
+
+
+const reasoningPrompt = ai.definePrompt({
+  name: 'driverFatigueReasoningPrompt',
+  input: {schema: ReasoningPromptInputSchema},
+  output: {schema: z.object({ reasoning: z.string() })},
+  prompt: `You are an expert AI driving safety analyst. Based on the calculated fatigue confidence of {{fatigueConfidence}}, provide a single, concise, and helpful reasoning string.
+
+The primary contributing factors were:
+- Speed Variance: {{speedVariance}}
+- Brake Frequency: {{brakeFrequency}}
+- Acceleration Inconsistency: {{accelInconsistency}}
+
+Example Reasoning:
+- If confidence is high: "High variance in speed and inconsistent acceleration patterns detected."
+- If confidence is moderate: "Slightly erratic speed control was detected, which can be an early sign of fatigue."
+- If confidence is low: "Driving patterns appear normal and alert."
+
+Generate ONLY the JSON object with the 'reasoning' field. Be helpful and clear.`,
+});
+
 
 const driverFatigueMonitorFlow = ai.defineFlow(
   {
@@ -64,10 +65,57 @@ const driverFatigueMonitorFlow = ai.defineFlow(
     inputSchema: DriverFatigueInputSchema,
     outputSchema: DriverFatigueOutputSchema,
   },
-  async input => {
-    // In a real scenario, you'd compare against a learned baseline.
-    // Here, the LLM simulates this comparison based on heuristic rules.
-    const {output} = await prompt(input);
-    return output!;
+  async (input) => {
+    // --- Step 1: Perform all calculations directly in TypeScript for reliability. ---
+    const { speedHistory, accelerationHistory } = input;
+    
+    if (speedHistory.length === 0 || accelerationHistory.length === 0) {
+      return {
+        isFatigued: false,
+        confidence: 0,
+        reasoning: "Not enough data to assess fatigue.",
+      };
+    }
+
+    // Step 1.1: Calculate Speed Variance
+    const meanSpeed = speedHistory.reduce((a, b) => a + b, 0) / speedHistory.length;
+    const speedVariance = speedHistory.reduce((sum, speed) => sum + Math.pow(speed - meanSpeed, 2), 0) / speedHistory.length;
+
+    // Step 1.2: Calculate Brake Frequency
+    const sharpBrakes = accelerationHistory.filter(a => a < -3.0).length; // Deceleration > 3 m/s²
+    const brakeFrequency = sharpBrakes / 60.0; // events per second over a 60-second window
+
+    // Step 1.3: Calculate Acceleration Inconsistency
+    let accelChanges = 0;
+    for (let i = 1; i < accelerationHistory.length; i++) {
+        accelChanges += Math.abs(accelerationHistory[i] - accelerationHistory[i-1]);
+    }
+    const accelInconsistency = accelerationHistory.length > 1 ? accelChanges / (accelerationHistory.length - 1) : 0;
+    
+    // Step 1.4: Calculate the 'z' value for the sigmoid function
+    const w1 = 0.4; // weight for speed_variance
+    const w2 = 0.3; // weight for brake_frequency
+    const w3 = 0.3; // weight for accel_inconsistency
+    const z = (w1 * speedVariance) + (w2 * brakeFrequency) + (w3 * accelInconsistency);
+
+    // Step 1.5: Calculate Fatigue Confidence using the sigmoid function
+    const fatigueConfidence = 1 / (1 + Math.exp(-z));
+    
+    // --- Step 2: Use the AI *only* to generate the human-friendly reasoning text. ---
+    const { output } = await reasoningPrompt({
+        fatigueConfidence,
+        speedVariance,
+        brakeFrequency,
+        accelInconsistency
+    });
+
+    const reasoning = output?.reasoning ?? "Driving patterns analyzed.";
+
+    // --- Step 3: Determine Final Output ---
+    return {
+      isFatigued: fatigueConfidence > 0.75, // Set a threshold for the warning
+      confidence: parseFloat(fatigueConfidence.toFixed(3)),
+      reasoning: reasoning,
+    };
   }
 );
