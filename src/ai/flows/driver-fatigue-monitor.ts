@@ -68,7 +68,7 @@ const driverFatigueMonitorFlow = ai.defineFlow(
   async (input) => {
     const { speedHistory, accelerationHistory } = input;
     
-    if (speedHistory.length < 2 || accelerationHistory.length < 2) {
+    if (speedHistory.length < 10 || accelerationHistory.length < 10) {
       return {
         isFatigued: false,
         confidence: 0,
@@ -82,7 +82,7 @@ const driverFatigueMonitorFlow = ai.defineFlow(
 
     // Step 2: Calculate Brake Frequency
     const sharpBrakes = accelerationHistory.filter(a => a < -3.0).length; // Deceleration > 3 m/s²
-    const timeWindowInSeconds = accelerationHistory.length;
+    const timeWindowInSeconds = 60; // Fixed 60-second window
     const brakeFrequency = sharpBrakes / timeWindowInSeconds; 
 
     // Step 3: Calculate Acceleration Inconsistency
@@ -90,7 +90,8 @@ const driverFatigueMonitorFlow = ai.defineFlow(
     for (let i = 1; i < accelerationHistory.length; i++) {
         accelChanges += Math.abs(accelerationHistory[i] - accelerationHistory[i-1]);
     }
-    const accelInconsistency = accelChanges / (accelerationHistory.length - 1);
+    // Avoid division by zero if there's only one entry
+    const accelInconsistency = accelerationHistory.length > 1 ? accelChanges / (accelerationHistory.length - 1) : 0;
     
     // Step 4: Fatigue Confidence Calculation
     const w1 = 0.4; // weight for speed_variance
