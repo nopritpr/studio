@@ -413,11 +413,12 @@ export function useVehicleSimulation() {
                 isFatigueCheckRunning.current = false;
                 return;
             }
+            const historyWindow = currentState.accelerationHistory.slice(0, 60);
             const fatigueInput: DriverFatigueInput = {
                 speedHistory: currentState.speedHistory.slice(0, 60),
-                accelerationHistory: currentState.accelerationHistory.slice(0, 60),
-                harshBrakingEvents: currentState.accelerationHistory.slice(0, 60).filter(a => a < -3).length,
-                harshAccelerationEvents: currentState.accelerationHistory.slice(0, 60).filter(a => a > 3).length,
+                accelerationHistory: historyWindow,
+                harshBrakingEvents: historyWindow.filter(a => a < -3).length,
+                harshAccelerationEvents: historyWindow.filter(a => a > 3).length,
             };
             const fatigueResult = await monitorDriverFatigue(fatigueInput);
             setAiState(prevState => ({

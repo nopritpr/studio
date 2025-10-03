@@ -16,6 +16,8 @@ import {z} from 'genkit';
 const DriverFatigueInputSchema = z.object({
   speedHistory: z.array(z.number()).describe('The history of the driver speed in km/h over the last 60 seconds.'),
   accelerationHistory: z.array(z.number()).describe('The history of the driver acceleration in m/s^2 over the last 60 seconds.'),
+  harshBrakingEvents: z.number().optional().describe('Count of harsh braking events in the window.'),
+  harshAccelerationEvents: z.number().optional().describe('Count of harsh acceleration events in the window.'),
 });
 export type DriverFatigueInput = z.infer<typeof DriverFatigueInputSchema>;
 
@@ -66,7 +68,7 @@ const driverFatigueMonitorFlow = ai.defineFlow(
     outputSchema: DriverFatigueOutputSchema,
   },
   async (input) => {
-    const { speedHistory, accelerationHistory } = input;
+    const { speedHistory, accelerationHistory, harshBrakingEvents } = input;
     
     if (speedHistory.length < 10 || accelerationHistory.length < 10) {
       return {
@@ -81,7 +83,8 @@ const driverFatigueMonitorFlow = ai.defineFlow(
     const speedVariance = speedHistory.reduce((sum, speed) => sum + Math.pow(speed - meanSpeed, 2), 0) / speedHistory.length;
 
     // Step 2: Calculate Brake Frequency
-    const sharpBrakes = accelerationHistory.filter(a => a < -3.0).length; // Deceleration > 3 m/s²
+    // Use the count passed from the client if available, otherwise calculate it.
+    const sharpBrakes = harshBrakingEvents ?? accelerationHistory.filter(a => a < -3.0).length;
     const timeWindowInSeconds = 60; // Fixed 60-second window
     const brakeFrequency = sharpBrakes / timeWindowInSeconds; 
 
