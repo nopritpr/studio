@@ -51,7 +51,7 @@ The primary contributing factors were:
 - Acceleration Inconsistency: {{accelInconsistency}}
 
 Example Reasoning:
-- If confidence is high: "High variance in speed and inconsistent acceleration patterns detected."
+- If confidence is high: "High variance in speed and inconsistent acceleration patterns detected, suggesting fatigue."
 - If confidence is moderate: "Slightly erratic speed control was detected, which can be an early sign of fatigue."
 - If confidence is low: "Driving patterns appear normal and alert."
 
@@ -66,10 +66,9 @@ const driverFatigueMonitorFlow = ai.defineFlow(
     outputSchema: DriverFatigueOutputSchema,
   },
   async (input) => {
-    // --- Step 1: Perform all calculations directly in TypeScript for reliability. ---
     const { speedHistory, accelerationHistory } = input;
     
-    if (speedHistory.length === 0 || accelerationHistory.length === 0) {
+    if (speedHistory.length < 2 || accelerationHistory.length < 2) {
       return {
         isFatigued: false,
         confidence: 0,
@@ -77,41 +76,41 @@ const driverFatigueMonitorFlow = ai.defineFlow(
       };
     }
 
-    // Step 1.1: Calculate Speed Variance
+    // Step 1: Calculate Speed Variance
     const meanSpeed = speedHistory.reduce((a, b) => a + b, 0) / speedHistory.length;
     const speedVariance = speedHistory.reduce((sum, speed) => sum + Math.pow(speed - meanSpeed, 2), 0) / speedHistory.length;
 
-    // Step 1.2: Calculate Brake Frequency
+    // Step 2: Calculate Brake Frequency
     const sharpBrakes = accelerationHistory.filter(a => a < -3.0).length; // Deceleration > 3 m/s²
-    const brakeFrequency = sharpBrakes / 60.0; // events per second over a 60-second window
+    const timeWindowInSeconds = accelerationHistory.length;
+    const brakeFrequency = sharpBrakes / timeWindowInSeconds; 
 
-    // Step 1.3: Calculate Acceleration Inconsistency
+    // Step 3: Calculate Acceleration Inconsistency
     let accelChanges = 0;
     for (let i = 1; i < accelerationHistory.length; i++) {
         accelChanges += Math.abs(accelerationHistory[i] - accelerationHistory[i-1]);
     }
-    const accelInconsistency = accelerationHistory.length > 1 ? accelChanges / (accelerationHistory.length - 1) : 0;
+    const accelInconsistency = accelChanges / (accelerationHistory.length - 1);
     
-    // Step 1.4: Calculate the 'z' value for the sigmoid function
+    // Step 4: Fatigue Confidence Calculation
     const w1 = 0.4; // weight for speed_variance
     const w2 = 0.3; // weight for brake_frequency
     const w3 = 0.3; // weight for accel_inconsistency
     const z = (w1 * speedVariance) + (w2 * brakeFrequency) + (w3 * accelInconsistency);
 
-    // Step 1.5: Calculate Fatigue Confidence using the sigmoid function
     const fatigueConfidence = 1 / (1 + Math.exp(-z));
     
-    // --- Step 2: Use the AI *only* to generate the human-friendly reasoning text. ---
+    // Step 5: Use the AI *only* to generate the human-friendly reasoning text.
     const { output } = await reasoningPrompt({
         fatigueConfidence,
-        speedVariance,
-        brakeFrequency,
-        accelInconsistency
+        speedVariance: parseFloat(speedVariance.toFixed(2)),
+        brakeFrequency: parseFloat(brakeFrequency.toFixed(3)),
+        accelInconsistency: parseFloat(accelInconsistency.toFixed(2))
     });
 
     const reasoning = output?.reasoning ?? "Driving patterns analyzed.";
 
-    // --- Step 3: Determine Final Output ---
+    // Step 6: Determine Final Output
     return {
       isFatigued: fatigueConfidence > 0.75, // Set a threshold for the warning
       confidence: parseFloat(fatigueConfidence.toFixed(3)),
