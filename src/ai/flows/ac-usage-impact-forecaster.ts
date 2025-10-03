@@ -36,13 +36,17 @@ const RecommendationPromptInputSchema = z.object({
     acOn: z.boolean(),
     acTemp: z.number(),
     calculatedImpact: z.number(),
+    outsideTemp: z.number(),
 });
 
 const recommendationPrompt = ai.definePrompt({
   name: 'acUsageRecommendationPrompt',
   input: {schema: RecommendationPromptInputSchema},
   output: {schema: z.object({ recommendation: z.string() })},
-  prompt: `You are an EV energy efficiency expert. Based on the calculated hourly range impact of {{calculatedImpact}} km, provide a single, concise, and helpful recommendation. The user's A/C is currently {{#if acOn}}On at {{acTemp}}°C{{else}}Off{{/if}}.
+  prompt: `You are an EV energy efficiency expert. Based on the calculated hourly range impact of {{calculatedImpact}} km, provide a single, concise, and helpful recommendation.
+
+The user's A/C is currently {{#if acOn}}On at {{acTemp}}°C{{else}}Off{{/if}}.
+The outside temperature is {{outsideTemp}}°C.
 
 Example Recommendations:
 - If impact is high and negative: "High A/C usage is significantly reducing your range. Consider increasing the temperature to save range."
@@ -51,6 +55,7 @@ Example Recommendations:
 
 Generate ONLY the JSON object with the 'recommendation' field. Be creative and helpful.`,
 });
+
 
 const acUsageImpactFlow = ai.defineFlow(
   {
@@ -61,34 +66,46 @@ const acUsageImpactFlow = ai.defineFlow(
   async (input) => {
     // --- Step 1: Perform all calculations directly in TypeScript for reliability. ---
     const { acOn, acTemp, outsideTemp, recentWhPerKm } = input;
-    const vehicleEfficiency = recentWhPerKm > 0 ? recentWhPerKm : 160; // Use a fallback if efficiency is zero
-
+    
+    // Use a fallback if efficiency is zero to prevent division by zero errors
+    const vehicleEfficiency = recentWhPerKm > 0 ? recentWhPerKm : 150; 
+    
     const MAX_AC_POWER_KW = 3.0;
+    const DURATION_HOURS = 1;
 
     // Calculate Temperature Differential
     const tempDiff = Math.abs(outsideTemp - acTemp);
 
-    // Calculate AC Power Consumption
+    // Calculate AC Duty Cycle and Power Consumption
     const dutyCycle = Math.min(1.0, tempDiff / 10.0);
     const actualAcPower = dutyCycle * MAX_AC_POWER_KW;
 
-    // Calculate Physics-Based Range Loss (for one hour)
-    const energyConsumedWh = actualAcPower * 1 * 1000;
+    // Calculate Physics-Based Range Loss
+    const energyConsumedWh = actualAcPower * DURATION_HOURS * 1000;
     const rangeLossKm = energyConsumedWh / vehicleEfficiency;
+
+    // Apply Regression Coefficients for a more nuanced prediction
+    const B0 = -2.5; // base intercept
+    const B1 = 2.1; // temperature coefficient
+    const B2 = 5.8; // power coefficient
+    const B3 = -0.03; // efficiency coefficient
+    
+    let regressionImpact = B0 + (B1 * tempDiff) + (B2 * actualAcPower) + (B3 * vehicleEfficiency);
+    
+    // Ensure the impact is realistic and non-negative
+    regressionImpact = Math.max(0, regressionImpact);
 
     // --- Step 2: Determine Final Output based on A/C status ---
     // If A/C is ON, the impact is a loss (negative).
-    // If A/C is OFF, we show the potential impact *if it were turned on*.
-    // The recommendation should be based on the potential loss.
-    const finalImpactKm = acOn ? -Math.abs(rangeLossKm) : Math.abs(rangeLossKm);
-    const recommendationContextImpact = -Math.abs(rangeLossKm);
-
+    // If A/C is OFF, we show the potential impact *if it were turned on* (also as a negative, representing potential loss).
+    const finalImpactKm = -Math.abs(regressionImpact);
 
     // --- Step 3: Use the AI *only* to generate the human-friendly recommendation text. ---
     const { output } = await recommendationPrompt({
       acOn: acOn,
       acTemp: acTemp,
-      calculatedImpact: recommendationContextImpact,
+      outsideTemp: outsideTemp,
+      calculatedImpact: finalImpactKm, // Pass the calculated loss to the prompt
     });
 
     const recommendation = output?.recommendation ?? "Adjust A/C for optimal range.";
