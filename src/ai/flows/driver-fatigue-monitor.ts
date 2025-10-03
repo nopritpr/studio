@@ -31,34 +31,6 @@ export async function monitorDriverFatigue(input: DriverFatigueInput): Promise<D
   return driverFatigueMonitorFlow(input);
 }
 
-const ReasoningPromptInputSchema = z.object({
-    fatigueConfidence: z.number(),
-    speedVariance: z.number(),
-    brakeFrequency: z.number(),
-    accelInconsistency: z.number(),
-});
-
-
-const reasoningPrompt = ai.definePrompt({
-  name: 'driverFatigueReasoningPrompt',
-  input: {schema: ReasoningPromptInputSchema},
-  output: {schema: z.object({ reasoning: z.string() })},
-  prompt: `You are an expert AI driving safety analyst. Based on the calculated fatigue confidence of {{fatigueConfidence}}, provide a single, concise, and helpful reasoning string.
-
-The primary contributing factors were:
-- Speed Variance: {{speedVariance}}
-- Brake Frequency: {{brakeFrequency}}
-- Acceleration Inconsistency: {{accelInconsistency}}
-
-Example Reasoning:
-- If confidence is high: "High variance in speed and inconsistent acceleration patterns detected, suggesting fatigue."
-- If confidence is moderate: "Slightly erratic speed control was detected, which can be an early sign of fatigue."
-- If confidence is low: "Driving patterns appear normal and alert."
-
-Generate ONLY the JSON object with the 'reasoning' field. Be helpful and clear.`,
-});
-
-
 const driverFatigueMonitorFlow = ai.defineFlow(
   {
     name: 'driverFatigueMonitorFlow',
@@ -94,25 +66,25 @@ const driverFatigueMonitorFlow = ai.defineFlow(
     
     // --- Step 4: Fatigue Confidence Calculation (Corrected) ---
     // These weights and intercept are tuned to be sensitive to the input metrics.
-    const B0 = -2.0;  // Base intercept to keep confidence low for normal driving.
-    const w1 = 0.1;   // Weight for speed_variance
-    const w2 = 15.0;  // High weight for brake_frequency
-    const w3 = 0.5;   // Weight for accel_inconsistency
+    const B0 = -2.5;  // Base intercept to keep confidence low for normal driving.
+    const w1 = 0.25;   // Weight for speed_variance
+    const w2 = 25.0;  // High weight for brake_frequency
+    const w3 = 1.0;   // Weight for accel_inconsistency
     
     const z = B0 + (w1 * speedVariance) + (w2 * brakeFrequency) + (w3 * accelInconsistency);
     
     // Sigmoid function to map Z-score to a probability (0-1)
     const fatigueConfidence = 1 / (1 + Math.exp(-z));
     
-    // Step 5: Use the AI *only* to generate the human-friendly reasoning text.
-    const { output } = await reasoningPrompt({
-        fatigueConfidence,
-        speedVariance: parseFloat(speedVariance.toFixed(2)),
-        brakeFrequency: parseFloat(brakeFrequency.toFixed(3)),
-        accelInconsistency: parseFloat(accelInconsistency.toFixed(2))
-    });
-
-    const reasoning = output?.reasoning ?? "Driving patterns analyzed.";
+    // Step 5: Generate human-friendly reasoning text.
+    let reasoning: string;
+    if (fatigueConfidence > 0.75) {
+        reasoning = "High variance in speed and inconsistent acceleration patterns detected, suggesting fatigue.";
+    } else if (fatigueConfidence > 0.4) {
+        reasoning = "Slightly erratic speed control was detected, which can be an early sign of fatigue.";
+    } else {
+        reasoning = "Driving patterns appear normal and alert.";
+    }
 
     // --- Step 6: Determine Final Output ---
     return {
