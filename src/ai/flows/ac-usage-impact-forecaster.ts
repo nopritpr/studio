@@ -2,7 +2,7 @@
 'use server';
 
 /**
- * @fileOverview Predicts the impact of A/C usage on driving range using a regression model.
+ * @fileOverview Predicts the impact of A/C usage on driving range.
  *
  * - getAcUsageImpact - A function that returns the predicted range impact of A/C usage.
  * - AcUsageImpactInput - The input type for the getAcUsageImpact function.
@@ -71,7 +71,6 @@ const acUsageImpactFlow = ai.defineFlow(
     const vehicleEfficiency = recentWhPerKm > 0 ? recentWhPerKm : 150; 
     
     const MAX_AC_POWER_KW = 3.0;
-    const DURATION_HOURS = 1;
 
     // Calculate Temperature Differential
     const tempDiff = Math.abs(outsideTemp - acTemp);

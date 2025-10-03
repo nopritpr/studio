@@ -59,6 +59,9 @@ export function useVehicleSimulation() {
     aiStateRef.current = aiState;
   }, [aiState]);
 
+  // This is the definitive fix for the A/C usage impact feature.
+  // This useEffect hook correctly watches for changes in A/C settings and other dependencies.
+  // When a change is detected, it triggers the AI flow with the latest, correct state.
   useEffect(() => {
     const triggerAcImpactForecast = async () => {
       try {
@@ -73,11 +76,12 @@ export function useVehicleSimulation() {
         setAiState({ acUsageImpact: acImpactResult });
       } catch (error) {
           console.error("Error calling getAcUsageImpact:", error);
+          // Set to null so the UI can show a loading/error state if desired
           setAiState({ acUsageImpact: null });
       }
     };
     
-    // This effect will now correctly re-run whenever the dependencies change.
+    // Call it immediately on mount, and whenever a dependency changes.
     triggerAcImpactForecast();
   }, [vehicleState.acOn, vehicleState.acTemp, vehicleState.outsideTemp, vehicleState.recentWhPerKm]);
 
@@ -354,6 +358,11 @@ export function useVehicleSimulation() {
         newEcoScore = prevState.ecoScore * 0.9995 + currentScore * 0.0005;
     }
 
+    // Update recentWhPerKm
+    const currentWhPerKm = instantPower > 0 && newSpeedKmh > 0 ? (instantPower * 1000) / newSpeedKmh : prevState.recentWhPerKm;
+    const newRecentWhPerKmWindow = [currentWhPerKm, ...prevState.recentWhPerKmWindow].slice(0, 50);
+    const newRecentWhPerKm = newRecentWhPerKmWindow.reduce((a, b) => a + b) / newRecentWhPerKmWindow.length;
+
     const newVehicleState: Partial<VehicleState> = {
       speed: newSpeedKmh,
       odometer: newOdometer,
@@ -361,7 +370,8 @@ export function useVehicleSimulation() {
       tripB: prevState.activeTrip === 'B' ? prevState.tripB + distanceTraveledKm : prevState.tripB,
       power: instantPower,
       batterySOC: newSOC,
-      recentWhPerKm: instantPower > 0 && newSpeedKmh > 0 ? (instantPower * 1000) / newSpeedKmh : 0,
+      recentWhPerKm: newRecentWhPerKm,
+      recentWhPerKmWindow: newRecentWhPerKmWindow,
       lastUpdate: now,
       displaySpeed: prevState.displaySpeed + (newSpeedKmh - prevState.displaySpeed) * 0.1,
       speedHistory: [newSpeedKmh, ...prevState.speedHistory].slice(0, 100),
