@@ -240,18 +240,20 @@ export function useVehicleSimulation() {
     }
   }, 2000), []);
 
-  const triggerFatigueCheck = useCallback(async () => {
+  const triggerFatigueCheck = useCallback(async (currentSpeed: number, currentAcceleration: number) => {
     const currentState = vehicleStateRef.current;
-    if (currentState.speed < 10) {
+    if (currentSpeed < 10) {
       setAiState({ fatigueLevel: 0, fatigueWarning: null });
       return;
     }
     try {
-      const historyWindow = currentState.accelerationHistory.slice(0, 60);
+      const speedHistory = [currentSpeed, ...currentState.speedHistory].slice(0, 60);
+      const accelerationHistory = [currentAcceleration, ...currentState.accelerationHistory].slice(0, 60);
+      
       const fatigueInput: DriverFatigueInput = {
-        speedHistory: currentState.speedHistory.slice(0, 60),
-        accelerationHistory: historyWindow,
-        harshBrakingEvents: historyWindow.filter(a => a < -3).length,
+        speedHistory: speedHistory,
+        accelerationHistory: accelerationHistory,
+        harshBrakingEvents: accelerationHistory.filter(a => a < -3).length,
       };
       const fatigueResult = await monitorDriverFatigue(fatigueInput);
       setAiState(prevState => ({
@@ -401,7 +403,7 @@ export function useVehicleSimulation() {
             odometer: newOdometer,
             cycleCount: newVehicleState.equivalentFullCycles!,
             avgBatteryTemp: prevState.batteryTemp,
-            soh: newVehicleleState.packSOH,
+            soh: newVehicleState.packSOH,
             ecoPercent: 100, cityPercent: 0, sportsPercent: 0
         };
         newVehicleState.sohHistory = [...prevState.sohHistory, newSohEntry];
@@ -411,7 +413,7 @@ export function useVehicleSimulation() {
 
     // Throttled AI calls
     if (now > lastFatigueCheckTime.current + 5000) { // Check every 5 seconds
-        triggerFatigueCheck();
+        triggerFatigueCheck(newSpeedKmh, currentAcceleration);
         lastFatigueCheckTime.current = now;
     }
     triggerAcUsageImpact();
