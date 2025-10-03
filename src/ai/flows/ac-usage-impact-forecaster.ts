@@ -16,7 +16,7 @@ const AcUsageImpactInputSchema = z.object({
   acOn: z.boolean().describe('Whether the A/C is currently active.'),
   acTemp: z.number().describe('The A/C temperature setting in Celsius.'),
   outsideTemp: z.number().describe('The current outside temperature in Celsius.'),
-  recentWhPerKm: z.number().describe('The recent average energy consumption in Watt-hours per kilometer.'),
+  recentEfficiency: z.number().describe('The recent average energy consumption in Watt-hours per kilometer.'),
 });
 export type AcUsageImpactInput = z.infer<typeof AcUsageImpactInputSchema>;
 
@@ -65,10 +65,10 @@ const acUsageImpactFlow = ai.defineFlow(
   },
   async (input) => {
     // --- Step 1: Perform all calculations directly in TypeScript for reliability. ---
-    const { acOn, acTemp, outsideTemp, recentWhPerKm } = input;
+    const { acOn, acTemp, outsideTemp, recentEfficiency } = input;
     
     // Use a fallback if efficiency is zero to prevent division by zero errors
-    const vehicleEfficiency = recentWhPerKm > 0 ? recentWhPerKm : 150; 
+    const vehicleEfficiency = recentEfficiency > 0 ? recentEfficiency : 150; 
     
     const MAX_AC_POWER_KW = 3.0;
 

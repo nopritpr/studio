@@ -59,9 +59,6 @@ export function useVehicleSimulation() {
     aiStateRef.current = aiState;
   }, [aiState]);
 
-  // --- DEFINITIVE A/C USAGE IMPACT FIX ---
-  // This useEffect correctly watches for changes in A/C settings and other dependencies.
-  // When a change is detected, it triggers the AI flow with the latest, correct state.
   useEffect(() => {
     const triggerAcImpactForecast = async () => {
       try {
@@ -70,7 +67,7 @@ export function useVehicleSimulation() {
             acOn: currentState.acOn,
             acTemp: currentState.acTemp,
             outsideTemp: currentState.outsideTemp,
-            recentWhPerKm: currentState.recentWhPerKm > 0 ? currentState.recentWhPerKm : 160,
+            recentEfficiency: currentState.recentWhPerKm > 0 ? currentState.recentWhPerKm : 160,
         };
         const acImpactResult = await getAcUsageImpact(acImpactInput);
         setAiState({ acUsageImpact: acImpactResult });
@@ -527,5 +524,3 @@ export function useVehicleSimulation() {
     toggleGoodsInBoot,
   };
 }
-
-    
