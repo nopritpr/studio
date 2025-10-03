@@ -84,7 +84,7 @@ const driverFatigueMonitorFlow = ai.defineFlow(
     // --- Step 2: Calculate Brake Frequency ---
     // Use the count passed from the client if available, otherwise calculate it.
     const sharpBrakes = harshBrakingEvents ?? accelerationHistory.filter(a => a < -3.0).length;
-    const timeWindowInSeconds = 60; // Fixed 60-second window
+    const timeWindowInSeconds = speedHistory.length; 
     const brakeFrequency = sharpBrakes / timeWindowInSeconds; 
 
     // --- Step 3: Calculate Acceleration Inconsistency ---
@@ -96,12 +96,12 @@ const driverFatigueMonitorFlow = ai.defineFlow(
     const accelInconsistency = accelerationHistory.length > 1 ? accelChanges / (accelerationHistory.length - 1) : 0;
     
     // --- Step 4: Fatigue Confidence Calculation ---
-    // A negative base intercept ensures confidence is not zero for perfect driving.
-    const B0 = -2.5;
-    // Weights are adjusted to make the model more sensitive to driver input.
-    const w1 = 0.4; // weight for speed_variance
-    const w2 = 15.0; // weight for brake_frequency (increased significantly)
-    const w3 = 0.8; // weight for accel_inconsistency (increased)
+    // A small negative base intercept ensures confidence is never exactly zero for perfect driving.
+    const B0 = -1.5;
+    // Weights are recalibrated to be highly sensitive to erratic driving patterns.
+    const w1 = 0.2;  // weight for speed_variance
+    const w2 = 30.0; // weight for brake_frequency (high impact)
+    const w3 = 1.5;  // weight for accel_inconsistency
     
     const z = B0 + (w1 * speedVariance) + (w2 * brakeFrequency) + (w3 * accelInconsistency);
     
