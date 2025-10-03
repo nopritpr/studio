@@ -30,31 +30,6 @@ export async function getAcUsageImpact(input: AcUsageImpactInput): Promise<AcUsa
   return acUsageImpactFlow(input);
 }
 
-const RecommendationPromptInputSchema = z.object({
-    acOn: z.boolean(),
-    acTemp: z.number(),
-    calculatedImpact: z.number(),
-    outsideTemp: z.number(),
-});
-
-const recommendationPrompt = ai.definePrompt({
-  name: 'acUsageRecommendationPrompt',
-  input: {schema: RecommendationPromptInputSchema},
-  output: {schema: z.object({ recommendation: z.string() })},
-  prompt: `You are an EV energy efficiency expert. Based on a calculated hourly range impact of {{calculatedImpact}} km, provide a single, concise, and helpful recommendation.
-
-The user's A/C is currently {{#if acOn}}On at {{acTemp}}°C{{else}}Off{{/if}}.
-The outside temperature is {{outsideTemp}}°C.
-
-Example Recommendations:
-- If impact is high and negative: "High A/C usage is significantly reducing your range. Consider increasing the temperature to save range."
-- If impact is low: "Your A/C usage is efficient. No changes needed."
-- If A/C is off, but the potential impact of turning it on is high: "Turning on the A/C now would reduce your range by approximately {{calculatedImpact}} km per hour."
-
-Generate ONLY the JSON object with the 'recommendation' field. Be creative and helpful.`,
-});
-
-
 const acUsageImpactFlow = ai.defineFlow(
   {
     name: 'acUsageImpactFlow',
@@ -62,54 +37,52 @@ const acUsageImpactFlow = ai.defineFlow(
     outputSchema: AcUsageImpactOutputSchema,
   },
   async (input) => {
-    // --- Step 1: Perform all calculations directly in TypeScript for reliability. ---
     const { acOn, acTemp, outsideTemp, recentEfficiency } = input;
-    
+
     // Use a fallback if efficiency is zero to prevent division by zero errors
     const vehicleEfficiencyWhPerKm = recentEfficiency > 0 ? recentEfficiency : 160; 
     
-    const MAX_AC_POWER_KW = 1.5; // More realistic max power for A/C compressor
+    // Constants
+    const MAX_AC_POWER_KW = 1.5; // Max power draw for the A/C compressor
+    const TEMP_DIFF_SCALING_FACTOR = 15.0; // Defines how aggressively the A/C works based on temp diff
 
     // Calculate Temperature Differential
     const tempDiff = Math.abs(outsideTemp - acTemp);
 
     // Calculate AC Duty Cycle and Power Consumption
-    const dutyCycle = Math.min(1.0, tempDiff / 15.0); // Less aggressive duty cycle scaling
+    // Duty cycle represents what percentage of its max power the A/C is using.
+    const dutyCycle = Math.min(1.0, tempDiff / TEMP_DIFF_SCALING_FACTOR);
     const acPowerKw = dutyCycle * MAX_AC_POWER_KW;
 
-    // Calculate energy consumed by AC in one hour
+    // Calculate energy consumed by AC in one hour (Wh)
     const acEnergyWh = acPowerKw * 1000;
 
-    // Calculate the range that could have been driven with that energy
+    // Calculate the range in km that could have been driven with that energy
     const potentialImpactKm = acEnergyWh / vehicleEfficiencyWhPerKm;
 
-    // --- Step 2: Determine Final Output based on A/C status ---
-    // If A/C is ON, the impact is a loss (negative).
-    // If A/C is OFF, we show the potential impact *if it were turned on* (also as a negative, representing potential loss).
-    const finalImpactKm = -Math.abs(potentialImpactKm);
-
-    // --- Step 3: Use the AI *only* to generate the human-friendly recommendation text. ---
-    // If A/C is off, we want to recommend what happens if they turn it on (negative impact)
-    // If A/C is on, we want to recommend what happens if they turn it off (positive impact)
-    let recommendationImpact = finalImpactKm;
-    if (acOn) {
-        // If A/C is on, the recommendation should be about the *gain* from turning it off
-        recommendationImpact = Math.abs(finalImpactKm);
-    }
+    // Determine final output based on A/C status
+    const rangeImpactKm = acOn ? -Math.abs(potentialImpactKm) : 0;
     
-    const { output } = await recommendationPrompt({
-      acOn: acOn,
-      acTemp: acTemp,
-      outsideTemp: outsideTemp,
-      calculatedImpact: recommendationImpact,
-    });
+    // Generate recommendation
+    let recommendation: string;
+    if (acOn) {
+        if (potentialImpactKm > 10) {
+            recommendation = `High A/C usage is reducing your range. Try increasing the temp to ${acTemp + 2}°C to gain ~${(potentialImpactKm * 0.3).toFixed(0)} km/hr.`;
+        } else if (potentialImpactKm > 3) {
+            recommendation = `A/C is moderately impacting your range. Adjusting the temperature can save energy.`;
+        } else {
+            recommendation = "Your A/C usage is very efficient. No changes needed.";
+        }
+    } else {
+        if (potentialImpactKm > 5) {
+            recommendation = `It's cool outside. Turning on the A/C now would reduce your range by ~${potentialImpactKm.toFixed(0)} km per hour.`;
+        } else {
+            recommendation = "Using the A/C now will have a minimal impact on your range.";
+        }
+    }
 
-    const recommendation = output?.recommendation ?? "Adjust A/C for optimal range.";
-
-    // The component always shows the *current cost* of the A/C. If it's on, it's a loss. If it's off, the cost is 0.
-    // The recommendation is separate.
     return {
-      rangeImpactKm: acOn ? parseFloat(finalImpactKm.toFixed(1)) : 0,
+      rangeImpactKm: parseFloat(rangeImpactKm.toFixed(1)),
       recommendation: recommendation,
     };
   }

@@ -242,25 +242,37 @@ export function useVehicleSimulation() {
 
   const triggerFatigueCheck = useCallback(async (currentSpeed: number, currentAcceleration: number) => {
     const currentState = vehicleStateRef.current;
+    
+    // Update histories with the latest data BEFORE calling the AI
+    const speedHistory = [currentSpeed, ...currentState.speedHistory].slice(0, 60);
+    const accelerationHistory = [currentAcceleration, ...currentState.accelerationHistory].slice(0, 60);
+
+    // Update the state with the new histories so the next tick has them
+    setVehicleState({ speedHistory, accelerationHistory });
+    
     if (currentSpeed < 10) {
-      setAiState({ fatigueLevel: 0, fatigueWarning: null });
+      // Reset fatigue level if speed is low, but don't clear warning immediately
+      setAiState({ fatigueLevel: 0 });
       return;
     }
+    
     try {
-      const speedHistory = [currentSpeed, ...currentState.speedHistory].slice(0, 60);
-      const accelerationHistory = [currentAcceleration, ...currentState.accelerationHistory].slice(0, 60);
-      
       const fatigueInput: DriverFatigueInput = {
         speedHistory: speedHistory,
         accelerationHistory: accelerationHistory,
-        harshBrakingEvents: accelerationHistory.filter(a => a < -3).length,
       };
       const fatigueResult = await monitorDriverFatigue(fatigueInput);
+
       setAiState(prevState => ({
         ...prevState,
         fatigueLevel: fatigueResult.confidence,
-        fatigueWarning: fatigueResult.isFatigued ? fatigueResult.reasoning : null,
+        fatigueWarning: fatigueResult.isFatigued ? fatigueResult.reasoning : prevState.fatigueWarning, // Don't clear warning on non-fatigued result
       }));
+       // If confidence drops, clear the warning
+      if (fatigueResult.confidence < 0.5) {
+        setAiState({ fatigueWarning: null });
+      }
+
     } catch (error) {
       console.error("Error calling monitorDriverFatigue:", error);
     }
@@ -389,8 +401,7 @@ export function useVehicleSimulation() {
       recentWhPerKmWindow: newRecentWhPerKmWindow,
       lastUpdate: now,
       displaySpeed: prevState.displaySpeed + (newSpeedKmh - prevState.displaySpeed) * 0.1,
-      speedHistory: [newSpeedKmh, ...prevState.speedHistory].slice(0, 100),
-      accelerationHistory: [currentAcceleration, ...prevState.accelerationHistory].slice(0, 100),
+      // speedHistory and accelerationHistory are updated in triggerFatigueCheck
       powerHistory: [instantPower, ...prevState.powerHistory].slice(0, 100),
       ecoScore: newEcoScore,
       packSOH: Math.max(70, prevState.packSOH - Math.abs((prevState.batterySOC - newSOC) * 0.000001)),
@@ -412,7 +423,7 @@ export function useVehicleSimulation() {
     setVehicleState(newVehicleState);
 
     // Throttled AI calls
-    if (now > lastFatigueCheckTime.current + 5000) { // Check every 5 seconds
+    if (now > lastFatigueCheckTime.current + 2000) { // Check every 2 seconds
         triggerFatigueCheck(newSpeedKmh, currentAcceleration);
         lastFatigueCheckTime.current = now;
     }

@@ -31,7 +31,6 @@ export async function monitorDriverFatigue(input: DriverFatigueInput): Promise<D
   return driverFatigueMonitorFlow(input);
 }
 
-// A new, simplified schema for the reasoning prompt.
 const ReasoningPromptInputSchema = z.object({
     fatigueConfidence: z.number(),
     speedVariance: z.number(),
@@ -81,9 +80,9 @@ const driverFatigueMonitorFlow = ai.defineFlow(
     const meanSpeed = speedHistory.reduce((a, b) => a + b, 0) / speedHistory.length;
     const speedVariance = speedHistory.reduce((sum, speed) => sum + Math.pow(speed - meanSpeed, 2), 0) / speedHistory.length;
 
-    // --- Step 2: Calculate Brake Frequency ---
+    // --- Step 2: Calculate Sharp Brake Frequency ---
     const sharpBrakes = accelerationHistory.filter(a => a < -3.0).length;
-    const timeWindowInSeconds = 60; // Fixed 60-second window
+    const timeWindowInSeconds = accelerationHistory.length; // More accurate window
     const brakeFrequency = sharpBrakes / timeWindowInSeconds; 
 
     // --- Step 3: Calculate Acceleration Inconsistency ---
@@ -93,11 +92,12 @@ const driverFatigueMonitorFlow = ai.defineFlow(
     }
     const accelInconsistency = accelerationHistory.length > 1 ? accelChanges / (accelerationHistory.length - 1) : 0;
     
-    // --- Step 4: Fatigue Confidence Calculation ---
-    const B0 = -0.5; // Base intercept to prevent 0 confidence
-    const w1 = 0.4;  // weight for speed_variance
-    const w2 = 50.0; // High weight for brake_frequency
-    const w3 = 2.0;  // weight for accel_inconsistency
+    // --- Step 4: Fatigue Confidence Calculation (Corrected) ---
+    // These weights and intercept are tuned to be sensitive to the input metrics.
+    const B0 = -2.0;  // Base intercept to keep confidence low for normal driving.
+    const w1 = 0.1;   // Weight for speed_variance
+    const w2 = 15.0;  // High weight for brake_frequency
+    const w3 = 0.5;   // Weight for accel_inconsistency
     
     const z = B0 + (w1 * speedVariance) + (w2 * brakeFrequency) + (w3 * accelInconsistency);
     
