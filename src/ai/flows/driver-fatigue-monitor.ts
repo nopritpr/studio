@@ -17,7 +17,6 @@ const DriverFatigueInputSchema = z.object({
   speedHistory: z.array(z.number()).describe('The history of the driver speed in km/h over the last 60 seconds.'),
   accelerationHistory: z.array(z.number()).describe('The history of the driver acceleration in m/s^2 over the last 60 seconds.'),
   harshBrakingEvents: z.number().optional().describe('Count of harsh braking events in the window.'),
-  harshAccelerationEvents: z.number().optional().describe('Count of harsh acceleration events in the window.'),
 });
 export type DriverFatigueInput = z.infer<typeof DriverFatigueInputSchema>;
 

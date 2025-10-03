@@ -240,7 +240,7 @@ export function useVehicleSimulation() {
     }
   }, 2000), []);
 
-  const triggerFatigueCheck = useCallback(debounce(async () => {
+  const triggerFatigueCheck = useCallback(async () => {
     const currentState = vehicleStateRef.current;
     if (currentState.speed < 10) {
       setAiState({ fatigueLevel: 0, fatigueWarning: null });
@@ -262,7 +262,7 @@ export function useVehicleSimulation() {
     } catch (error) {
       console.error("Error calling monitorDriverFatigue:", error);
     }
-  }, 3000), []);
+  }, []);
 
   const triggerIdlePrediction = useCallback(debounce(async () => {
     const currentState = vehicleStateRef.current;
@@ -283,6 +283,7 @@ export function useVehicleSimulation() {
     }
   }, 5000), []);
 
+  const lastFatigueCheckTime = useRef(0);
 
   const updateVehicleState = useCallback(() => {
     const prevState = vehicleStateRef.current;
@@ -400,7 +401,7 @@ export function useVehicleSimulation() {
             odometer: newOdometer,
             cycleCount: newVehicleState.equivalentFullCycles!,
             avgBatteryTemp: prevState.batteryTemp,
-            soh: newVehicleState.packSOH,
+            soh: newVehicleleState.packSOH,
             ecoPercent: 100, cityPercent: 0, sportsPercent: 0
         };
         newVehicleState.sohHistory = [...prevState.sohHistory, newSohEntry];
@@ -408,9 +409,12 @@ export function useVehicleSimulation() {
     
     setVehicleState(newVehicleState);
 
-    // Trigger AI calls
+    // Throttled AI calls
+    if (now > lastFatigueCheckTime.current + 5000) { // Check every 5 seconds
+        triggerFatigueCheck();
+        lastFatigueCheckTime.current = now;
+    }
     triggerAcUsageImpact();
-    triggerFatigueCheck();
     triggerIdlePrediction();
 
 
