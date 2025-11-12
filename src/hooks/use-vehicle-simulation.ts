@@ -181,14 +181,15 @@ export function useVehicleSimulation() {
   
   const calculateDynamicRange = useCallback(() => {
     const currentState = vehicleStateRef.current;
+    const currentAiState = aiStateRef.current;
     const idealRange = currentState.initialRange * (currentState.batterySOC / 100);
 
     let penaltyPercentage = { ac: 0, load: 0, temp: 0, driveMode: 0 };
-
-    // A/C Penalty
-    if (currentState.acOn) {
-      const tempDiffFromOptimal = Math.abs(currentState.acTemp - (currentState.outsideTemp || 22));
-      penaltyPercentage.ac = 0.05 + (tempDiffFromOptimal / 10) * 0.05; // 5% base + 0.5% per degree diff
+    
+    // AC Penalty - now sourced from the AI model if available
+    const acImpactKm = currentAiState.acUsageImpact ? Math.abs(currentAiState.acUsageImpact.rangeImpactKm) : 0;
+    if (idealRange > 0) {
+      penaltyPercentage.ac = acImpactKm / idealRange;
     }
 
     // Load Penalty
@@ -214,7 +215,7 @@ export function useVehicleSimulation() {
     const totalRangeLoss = idealRange - predictedRange;
 
     const finalPenalties = {
-      ac: totalRangeLoss > 0 && totalPenaltyPercentage > 0 ? totalRangeLoss * (penaltyPercentage.ac / totalPenaltyPercentage) : 0,
+      ac: acImpactKm,
       load: totalRangeLoss > 0 && totalPenaltyPercentage > 0 ? totalRangeLoss * (penaltyPercentage.load / totalPenaltyPercentage) : 0,
       temp: totalRangeLoss > 0 && totalPenaltyPercentage > 0 ? totalRangeLoss * (penaltyPercentage.temp / totalPenaltyPercentage) : 0,
       driveMode: totalRangeLoss > 0 && totalPenaltyPercentage > 0 ? totalRangeLoss * (penaltyPercentage.driveMode / totalPenaltyPercentage) : 0,
@@ -438,7 +439,7 @@ export function useVehicleSimulation() {
 
   useEffect(() => {
     calculateDynamicRange();
-  }, [vehicleState.batterySOC, vehicleState.acOn, vehicleState.acTemp, vehicleState.driveMode, vehicleState.passengers, vehicleState.goodsInBoot, vehicleState.outsideTemp, calculateDynamicRange]);
+  }, [vehicleState.batterySOC, vehicleState.acOn, vehicleState.acTemp, vehicleState.driveMode, vehicleState.passengers, vehicleState.goodsInBoot, vehicleState.outsideTemp, aiState.acUsageImpact, calculateDynamicRange]);
   
   // Trigger AI flows when their relevant inputs change
   useEffect(() => {
@@ -531,3 +532,4 @@ export function useVehicleSimulation() {
     
 
     
+
