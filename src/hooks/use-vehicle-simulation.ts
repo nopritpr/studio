@@ -201,7 +201,7 @@ export function useVehicleSimulation() {
     if (idealRange > 0 && currentState.acOn) {
       // This is a rough estimation of the penalty over the *entire remaining range* not just per hour
       // For a more accurate instantaneous breakdown, we use the hourly rate as a proxy for current severity
-      penaltyPercentage.ac = acImpactKm / idealRange; 
+      penaltyPercentage.ac = (acImpactKm*2) / idealRange; // Multiplied by 2 for a more noticeable impact visualization
     }
 
     // Load Penalty
@@ -391,7 +391,7 @@ export function useVehicleSimulation() {
     let newEcoScore = prevState.ecoScore;
     if (newSpeedKmh > 1 && !prevState.isCharging) {
         const currentScore = 100 - Math.abs(currentAcceleration) * 5 - (prevState.recentWhPerKm > 0 ? (prevState.recentWhPerKm / 10) : 0);
-        newEcoScore = prevState.ecoScore * 0.9995 + currentScore * 0.0005;
+        newEcoScore = prevState.ecoScore * 0.99 + currentScore * 0.01;
     }
 
     // Update recentWhPerKm

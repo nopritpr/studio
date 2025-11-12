@@ -77,7 +77,7 @@ export default function OptimizationTab({ state, onProfileSwitchClick }: Optimiz
             <Card className="flex flex-col items-center justify-center">
                 <CardHeader className="items-center pb-2 text-center">
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><BarChart className="w-4 h-4"/>Eco-Driving Score</CardTitle>
-                    <p className="text-xs text-muted-foreground -mt-2 px-2">A scoring model analyzes speed, acceleration, and efficiency to rate driving style.</p>
+                    <p className="text-xs text-muted-foreground -mt-2 px-2">A scoring model rates driving style based on smooth acceleration and efficient energy use.</p>
                 </CardHeader>
                 <CardContent className="flex-grow w-48 h-48 flex flex-col items-center justify-center">
                     <div className="w-full h-full">
