@@ -66,7 +66,7 @@ const driverFatigueMonitorFlow = ai.defineFlow(
     }
     const accelInconsistency = accelerationHistory.length > 1 ? accelChanges / (accelerationHistory.length - 1) : 0;
     
-    // --- Step 4: Fatigue Confidence Calculation (Corrected) ---
+    // --- Step 4: Fatigue Confidence Calculation (Recalibrated) ---
     // These weights and intercept are tuned to be sensitive to the input metrics.
     const B0 = -2.0;  // Intercept calibrated for typical driving being low confidence.
     const w1 = 0.3;   // Weight for speed_variance
@@ -82,9 +82,9 @@ const driverFatigueMonitorFlow = ai.defineFlow(
     // Step 5: Generate human-friendly reasoning text based on confidence.
     let reasoning: string;
     if (fatigueConfidence > 0.75) {
-        reasoning = "High variance in speed and inconsistent acceleration patterns detected, suggesting fatigue.";
+        reasoning = `High variance in speed and inconsistent acceleration patterns detected, suggesting fatigue. Speed variance: ${speedVariance.toFixed(2)}, Brake Freq: ${brakeFrequency.toFixed(2)}`;
     } else if (fatigueConfidence > 0.4) {
-        reasoning = "Slightly erratic speed control was detected, which can be an early sign of fatigue.";
+        reasoning = `Slightly erratic speed control was detected, which can be an early sign of fatigue. Speed variance: ${speedVariance.toFixed(2)}`;
     } else {
         reasoning = "Driving patterns appear normal and alert.";
     }

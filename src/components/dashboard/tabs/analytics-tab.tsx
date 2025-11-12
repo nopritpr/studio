@@ -96,7 +96,7 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                  <Card className="flex flex-col">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-headline flex items-center gap-2"><AlertTriangle className="w-4 h-4"/>Fatigue Monitor</CardTitle>
-                        <p className="text-xs text-muted-foreground -mt-2">An LSTM autoencoder detects anomalies in driving patterns that may indicate fatigue.</p>
+                        <p className="text-xs text-muted-foreground -mt-2">An LSTM autoencoder detects anomalies in speed variance and acceleration patterns that may indicate fatigue.</p>
                     </CardHeader>
                     <CardContent className="flex-grow flex items-center justify-end">
                         <FatigueMonitorGauge fatigueLevel={state.fatigueLevel} />
