@@ -268,7 +268,6 @@ export function useVehicleSimulation() {
         fatigueLevel: fatigueResult.confidence,
         fatigueWarning: fatigueResult.isFatigued ? fatigueResult.reasoning : prevState.fatigueWarning, // Don't clear warning on non-fatigued result
       }));
-       // If confidence drops, clear the warning
       if (fatigueResult.confidence < 0.5) {
         setAiState({ fatigueWarning: null });
       }
