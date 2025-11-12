@@ -20,17 +20,18 @@ const ProfileDetail = ({ label, value }: { label: string, value: string | number
     </div>
 );
 
-const AcImpactDisplay = ({ impact, recommendation }: { impact: number, recommendation: string }) => {
+const AcImpactDisplay = ({ impact, recommendation, reasoning }: { impact: number, recommendation: string, reasoning: string }) => {
   const isGain = impact > 0;
   const displayValue = Math.abs(impact).toFixed(1);
   const colorClass = isGain ? "text-green-400" : "text-destructive";
 
   return (
-    <div className="p-3 rounded-lg flex flex-col items-center justify-center text-center gap-1 bg-muted/50 border border-border/50 h-full">
+    <div className="p-3 rounded-lg flex flex-col items-center justify-center text-center gap-2 bg-muted/50 border border-border/50 h-full">
        <p className={`text-3xl font-bold font-headline ${colorClass}`}>
         {isGain ? '+' : '-'}{displayValue} km
        </p>
-       <p className="text-xs text-muted-foreground leading-snug">{recommendation}</p>
+       <p className="text-xs font-semibold leading-snug">{recommendation}</p>
+       <p className="text-xs text-muted-foreground leading-snug mt-1">{reasoning}</p>
     </div>
   );
 };
@@ -66,8 +67,9 @@ export default function OptimizationTab({ state, onProfileSwitchClick }: Optimiz
   const greenScore = state.odometer > 0 ? state.odometer * 120 : 0; // 120g CO2 saved per km vs average ICE car
 
   const defaultAcImpact = {
-    rangeImpactKm: state.acOn ? -2.5 : 2.5,
-    recommendation: state.acOn ? "Turn off A/C to save range." : "Turning on A/C may reduce range."
+    rangeImpactKm: state.acOn ? -2.5 : 0,
+    recommendation: state.acOn ? "Turn off A/C to save range." : "A/C is off.",
+    reasoning: "Calculating impact based on current conditions..."
   };
 
   return (
@@ -123,11 +125,13 @@ export default function OptimizationTab({ state, onProfileSwitchClick }: Optimiz
                             <AcImpactDisplay 
                                 impact={state.acUsageImpact.rangeImpactKm} 
                                 recommendation={state.acUsageImpact.recommendation}
+                                reasoning={state.acUsageImpact.reasoning}
                             />
                         ) : (
                              <AcImpactDisplay 
                                 impact={defaultAcImpact.rangeImpactKm} 
                                 recommendation={defaultAcImpact.recommendation}
+                                reasoning={defaultAcImpact.reasoning}
                             />
                         )}
                     </div>

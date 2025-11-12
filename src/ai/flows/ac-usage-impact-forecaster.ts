@@ -23,6 +23,7 @@ export type AcUsageImpactInput = z.infer<typeof AcUsageImpactInputSchema>;
 const AcUsageImpactOutputSchema = z.object({
   rangeImpactKm: z.number().describe('The predicted range change in kilometers over the next hour. Positive if range is gained (e.g., by turning A/C off), negative if lost (e.g., by turning A/C on).'),
   recommendation: z.string().describe('A brief, actionable recommendation based on the A/C impact.'),
+  reasoning: z.string().describe('A brief explanation for the prediction, detailing the factors involved.'),
 });
 export type AcUsageImpactOutput = z.infer<typeof AcUsageImpactOutputSchema>;
 
@@ -63,9 +64,12 @@ const acUsageImpactFlow = ai.defineFlow(
     // Determine final output based on A/C status
     const rangeImpactKm = acOn ? -Math.abs(potentialImpactKm) : 0;
     
-    // Generate recommendation
+    // Generate recommendation & reasoning
     let recommendation: string;
+    let reasoning: string;
+
     if (acOn) {
+        reasoning = `The A/C is cooling the cabin by ${tempDiff.toFixed(1)}°C, drawing ~${acPowerKw.toFixed(2)} kW. Based on your recent efficiency of ${Math.round(vehicleEfficiencyWhPerKm)} Wh/km, this consumes energy that could have provided ~${potentialImpactKm.toFixed(1)} km of range.`;
         if (potentialImpactKm > 10) {
             recommendation = `High A/C usage is reducing your range. Try increasing the temp to ${acTemp + 2}°C to gain ~${(potentialImpactKm * 0.3).toFixed(0)} km/hr.`;
         } else if (potentialImpactKm > 3) {
@@ -74,18 +78,18 @@ const acUsageImpactFlow = ai.defineFlow(
             recommendation = "Your A/C usage is very efficient. No changes needed.";
         }
     } else {
+        reasoning = `The A/C is off. Turning it on to maintain a ${tempDiff.toFixed(1)}°C difference from outside would draw ~${acPowerKw.toFixed(2)} kW, costing about ${potentialImpactKm.toFixed(1)} km of range per hour.`;
         if (potentialImpactKm > 5) {
-            recommendation = `It's cool outside. Turning on the A/C now would reduce your range by ~${potentialImpactKm.toFixed(0)} km per hour.`;
+            recommendation = `It's cool outside. Keeping the A/C off is saving you ~${potentialImpactKm.toFixed(0)} km of range every hour.`;
         } else {
-            recommendation = "Using the A/C now will have a minimal impact on your range.";
+            recommendation = "Using the A/C now would have a minimal impact on your range.";
         }
     }
 
     return {
       rangeImpactKm: parseFloat(rangeImpactKm.toFixed(1)),
       recommendation: recommendation,
+      reasoning: reasoning,
     };
   }
 );
-
-    
