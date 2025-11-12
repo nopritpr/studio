@@ -47,7 +47,7 @@ const predictiveIdleDrainFlow = ai.defineFlow(
   async (input) => {
     const { currentBatterySOC, acOn, acTemp, outsideTemp } = input;
 
-    // --- Step 1: Calculate Hourly Drain Components based on user's formula ---
+    // --- Step 1: Calculate Hourly Drain Components based on the correct formula ---
 
     // Base_Drain = 0.8% per hour
     const baseDrain = 0.8;
@@ -60,9 +60,8 @@ const predictiveIdleDrainFlow = ai.defineFlow(
       acDrain = dutyCycle * 2.1;
     }
 
-    // Temp_Penalty: Model from example (0.3% at 30°C).
-    // We'll create a simple linear model for temperatures above 25°C.
-    // Penalty = (T_outside - 25) * factor. To get 0.3 at 30C, factor = 0.3 / (30-25) = 0.06
+    // Temp_Penalty: Creates a linear penalty for temperatures above 25°C.
+    // Example: At 30°C, penalty is (30-25)*0.06 = 0.3%. At 35°C, penalty is (35-25)*0.06 = 0.6%
     const tempPenalty = outsideTemp > 25 ? (outsideTemp - 25) * 0.06 : 0;
 
     // Total_Hourly_Drain
