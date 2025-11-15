@@ -6,6 +6,8 @@ import EcoScoreGauge from "../charts/eco-score-gauge";
 import type { VehicleState, AiState } from "@/lib/types";
 import { Leaf, User, BrainCircuit, BarChart, Wind } from "lucide-react";
 import IdleDrainChart from "../charts/idle-drain-chart";
+import { EV_CONSTANTS } from "@/lib/constants";
+import { TrendingDown, TrendingUp } from "lucide-react";
 
 interface OptimizationTabProps {
     state: VehicleState & AiState;
@@ -59,6 +61,28 @@ const GreenScoreCard = ({ score }: { score: number }) => {
   );
 };
 
+const EcoScoreReasoning = ({ acceleration, currentWhPerKm }: { acceleration: number, currentWhPerKm: number }) => {
+    const isAcceleratingSmoothly = acceleration < 1.5;
+    const isEfficient = currentWhPerKm < EV_CONSTANTS.baseConsumption;
+
+    return (
+        <div className="text-xs text-muted-foreground space-y-2 mt-2">
+            <div className="flex items-center gap-2">
+                {isAcceleratingSmoothly ? <TrendingUp className="w-4 h-4 text-green-500" /> : <TrendingDown className="w-4 h-4 text-destructive" />}
+                <p>
+                    {isAcceleratingSmoothly ? 'Smooth acceleration is preserving your score.' : 'Harsh acceleration is lowering your score.'}
+                </p>
+            </div>
+            <div className="flex items-center gap-2">
+                {isEfficient ? <TrendingUp className="w-4 h-4 text-green-500" /> : <TrendingDown className="w-4 h-4 text-destructive" />}
+                <p>
+                    {isEfficient ? 'Energy usage is below baseline, good job!' : `Energy usage is above baseline (${Math.round(currentWhPerKm)} Wh/km).`}
+                </p>
+            </div>
+        </div>
+    );
+};
+
 
 export default function OptimizationTab({ state, onProfileSwitchClick }: OptimizationTabProps) {
 
@@ -74,15 +98,21 @@ export default function OptimizationTab({ state, onProfileSwitchClick }: Optimiz
 
   return (
         <div className="h-full grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4 min-h-0">
-            <Card className="flex flex-col items-center justify-center">
+            <Card className="flex flex-col">
                 <CardHeader className="items-center pb-2 text-center">
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><BarChart className="w-4 h-4"/>Eco-Driving Score</CardTitle>
-                    <CardDescription className="text-xs -mt-2 px-2">A scoring model rates driving style based on smooth acceleration and efficient energy use.</CardDescription>
+                    <CardDescription className="text-xs -mt-2 px-2">Rates driving style on acceleration and energy use.</CardDescription>
                 </CardHeader>
-                <CardContent className="flex-grow w-48 h-48 flex flex-col items-center justify-center">
-                    <div className="w-full h-full">
+                <CardContent className="flex-grow w-full flex flex-col items-center justify-start p-4">
+                    <div className="w-48 h-48">
                         <EcoScoreGauge score={state.ecoScore} />
                     </div>
+                    {state.speed > 1 && (
+                        <EcoScoreReasoning
+                            acceleration={state.accelerationHistory[0] || 0}
+                            currentWhPerKm={state.recentWhPerKm}
+                        />
+                    )}
                 </CardContent>
             </Card>
             
