@@ -49,9 +49,10 @@ const driverFatigueMonitorFlow = ai.defineFlow(
       };
     }
 
-    // --- Step 1: Calculate Speed Variance ---
-    const meanSpeed = speedHistory.reduce((a, b) => a + b, 0) / speedHistory.length;
-    const speedVariance = speedHistory.reduce((sum, speed) => sum + Math.pow(speed - meanSpeed, 2), 0) / speedHistory.length;
+    // --- Step 1: Calculate Speed Variance (in m/s) ---
+    const speedHistoryMs = speedHistory.map(kmh => kmh / 3.6);
+    const meanSpeed = speedHistoryMs.reduce((a, b) => a + b, 0) / speedHistoryMs.length;
+    const speedVariance = speedHistoryMs.reduce((sum, speed) => sum + Math.pow(speed - meanSpeed, 2), 0) / speedHistoryMs.length;
 
     // --- Step 2: Calculate Sharp Brake Frequency ---
     const sharpBrakes = accelerationHistory.filter(a => a < -3.0).length;
@@ -66,9 +67,9 @@ const driverFatigueMonitorFlow = ai.defineFlow(
     // --- Step 4: Fatigue Score Calculation (Recalibrated for High Sensitivity) ---
     // These weights and intercept are tuned to be highly sensitive to deviations from normal driving.
     const B0 = -4.0;  // Intercept calibrated to keep score low during normal driving.
-    const w_speed_var = 0.5;   // High sensitivity to speed variance
+    const w_speed_var = 0.8;   // High sensitivity to speed variance
     const w_sharp_brake = 1.0;  // Very high penalty for each sharp brake event
-    const w_accel_incon = 2.0;   // High sensitivity to jerky movements
+    const w_accel_incon = 2.5;   // High sensitivity to jerky movements
     
     const anomalyScore = B0 + (w_speed_var * speedVariance) + (w_sharp_brake * sharpBrakes) + (w_accel_incon * accelInconsistency);
     
@@ -78,7 +79,7 @@ const driverFatigueMonitorFlow = ai.defineFlow(
     // Step 5: Generate human-friendly reasoning text.
     let reasoning: string;
     let highConfidenceReasons = [];
-    if (speedVariance > 15) highConfidenceReasons.push("highly variable speed");
+    if (speedVariance > 2.0) highConfidenceReasons.push("highly variable speed");
     if (sharpBrakes > 1) highConfidenceReasons.push("frequent sharp braking");
     if (accelInconsistency > 1.5) highConfidenceReasons.push("jerky acceleration");
 
