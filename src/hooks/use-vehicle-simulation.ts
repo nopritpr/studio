@@ -89,7 +89,7 @@ export function useVehicleSimulation() {
     setVehicleState({ goodsInBoot: !vehicleStateRef.current.goodsInBoot });
   };
 
-  const toggleCharging = () => {
+  const toggleCharging = useCallback(() => {
     setVehicleState(currentState => {
       if (currentState.speed > 0 && !currentState.isCharging) {
         toast({
@@ -138,7 +138,7 @@ export function useVehicleSimulation() {
         };
       }
     });
-  };
+  }, [toast]);
 
   const resetTrip = () => {
     const currentState = vehicleStateRef.current;
@@ -197,9 +197,15 @@ export function useVehicleSimulation() {
     let penaltyPercentage = { ac: 0, load: 0, temp: 0, driveMode: 0 };
     
     if (currentAiState.acUsageImpact && currentState.acOn) {
+        // Use the AI model's hourly impact and convert it to an equivalent total range penalty
         const acImpactKm = Math.abs(currentAiState.acUsageImpact.rangeImpactKm);
+        const hourlyEnergyLoss = acImpactKm * (currentState.recentWhPerKm / 1000); // kWh
+        const totalEnergyForAC = hourlyEnergyLoss * (idealRange / (currentState.speed > 0 ? currentState.speed : 50)); // A rough estimate of total time
+        
+        const acPenaltyKm = (totalEnergyForAC / currentState.batteryCapacity_kWh) * currentState.initialRange;
+
         if (idealRange > 0) {
-            penaltyPercentage.ac = acImpactKm / idealRange; 
+           penaltyPercentage.ac = (acPenaltyKm / idealRange) * 0.5; // Dampen the effect for total range calc
         }
     }
 
@@ -385,6 +391,7 @@ export function useVehicleSimulation() {
     let newEcoScore = prevState.ecoScore;
     if (newSpeedKmh > 1 && !prevState.isCharging) {
       const accelPenalty = Math.pow(Math.abs(currentAcceleration), 1.5) * 2;
+
       const consumptionDeviation = currentWhPerKm > EV_CONSTANTS.baseConsumption
         ? (currentWhPerKm - EV_CONSTANTS.baseConsumption) / EV_CONSTANTS.baseConsumption
         : 0;
@@ -515,7 +522,7 @@ export function useVehicleSimulation() {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [toggleCharging]);
 
   return {
     state: { ...vehicleState, ...aiState },
@@ -533,3 +540,5 @@ export function useVehicleSimulation() {
     toggleGoodsInBoot,
   };
 }
+
+    
