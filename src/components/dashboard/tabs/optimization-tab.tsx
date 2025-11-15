@@ -140,3 +140,5 @@ export default function OptimizationTab({ state, onProfileSwitchClick }: Optimiz
         </div>
     );
 }
+
+    

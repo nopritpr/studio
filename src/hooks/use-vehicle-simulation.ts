@@ -196,16 +196,13 @@ export function useVehicleSimulation() {
 
     let penaltyPercentage = { ac: 0, load: 0, temp: 0, driveMode: 0 };
     
+    // A/C penalty now directly uses the AI model's output for consistency
     if (currentAiState.acUsageImpact && currentState.acOn) {
-        // Use the AI model's hourly impact and convert it to an equivalent total range penalty
-        const acImpactKm = Math.abs(currentAiState.acUsageImpact.rangeImpactKm);
-        const hourlyEnergyLoss = acImpactKm * (currentState.recentWhPerKm / 1000); // kWh
-        const totalEnergyForAC = hourlyEnergyLoss * (idealRange / (currentState.speed > 0 ? currentState.speed : 50)); // A rough estimate of total time
-        
-        const acPenaltyKm = (totalEnergyForAC / currentState.batteryCapacity_kWh) * currentState.initialRange;
-
+        const acImpactKmPerHour = Math.abs(currentAiState.acUsageImpact.rangeImpactKm);
+        const estimatedDriveHours = currentState.speed > 0 ? (idealRange / currentState.speed) : 4;
+        const totalAcPenaltyKm = Math.min(acImpactKmPerHour * estimatedDriveHours, idealRange * 0.2); // Cap penalty
         if (idealRange > 0) {
-           penaltyPercentage.ac = (acPenaltyKm / idealRange) * 0.5; // Dampen the effect for total range calc
+            penaltyPercentage.ac = totalAcPenaltyKm / idealRange;
         }
     }
 
@@ -390,16 +387,20 @@ export function useVehicleSimulation() {
     
     let newEcoScore = prevState.ecoScore;
     if (newSpeedKmh > 1 && !prevState.isCharging) {
-      const accelPenalty = Math.pow(Math.abs(currentAcceleration), 1.5) * 2;
-
-      const consumptionDeviation = currentWhPerKm > EV_CONSTANTS.baseConsumption
-        ? (currentWhPerKm - EV_CONSTANTS.baseConsumption) / EV_CONSTANTS.baseConsumption
-        : 0;
-      const efficiencyPenalty = consumptionDeviation * 30;
+      // Penalty for harsh acceleration
+      const accelPenalty = Math.max(0, currentAcceleration - 1.5) * 10;
       
+      // Penalty for inefficient energy use
+      const consumptionRatio = currentWhPerKm / EV_CONSTANTS.baseConsumption;
+      const efficiencyPenalty = Math.max(0, (consumptionRatio - 1)) * 20;
+
+      // Calculate score for this frame (0-100)
       const currentScore = 100 - accelPenalty - efficiencyPenalty;
+      
+      // Update the moving average of the ecoScore
       newEcoScore = prevState.ecoScore * 0.99 + Math.max(0, currentScore) * 0.01;
     }
+
 
     const newRecentWhPerKmWindow = [currentWhPerKm > 0 ? currentWhPerKm : 160, ...prevState.recentWhPerKmWindow].slice(0, 50);
     const newRecentWhPerKm = newRecentWhPerKmWindow.reduce((a, b) => a + b) / newRecentWhPerKmWindow.length;
@@ -496,18 +497,26 @@ export function useVehicleSimulation() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.repeat) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key in keys) { e.preventDefault(); keys[e.key] = true; }
       if (e.key.toLowerCase() === 'c') {
-        e.preventDefault();
-        toggleCharging();
+        if (!e.repeat) {
+          e.preventDefault();
+          toggleCharging();
+        }
       }
       if (e.key === '1') setDriveMode('Eco');
       if (e.key === '2') setDriveMode('City');
       if (e.key === '3') setDriveMode('Sports');
-      if (e.key.toLowerCase() === 'a') toggleAC();
+      if (e.key.toLowerCase() === 'a') {
+        if (!e.repeat) {
+            e.preventDefault();
+            toggleAC();
+        }
+      }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key in keys) { e.preventDefault(); keys[e.key] = false; }
     };
 
@@ -540,5 +549,7 @@ export function useVehicleSimulation() {
     toggleGoodsInBoot,
   };
 }
+
+    
 
     
