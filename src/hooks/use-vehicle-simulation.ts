@@ -253,9 +253,10 @@ export function useVehicleSimulation() {
   const triggerFatigueCheck = useCallback(debounce(async () => {
     const currentState = vehicleStateRef.current;
     const { speedHistory, accelerationHistory, speed } = currentState;
-    
+
     if (speed < 10) {
-      setAiState(prevState => ({ ...prevState, fatigueLevel: 0, fatigueWarning: prevState.fatigueWarning && prevState.fatigueLevel > 0.5 ? prevState.fatigueWarning : null }));
+      // Don't check for fatigue at low speed, but also don't reset the warning if it's already active.
+      // The warning will clear when fatigue confidence drops below the threshold on a subsequent check.
       return;
     }
     
