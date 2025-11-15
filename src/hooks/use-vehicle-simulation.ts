@@ -97,7 +97,7 @@ export function useVehicleSimulation() {
           description: "Vehicle must be stationary to start charging.",
           variant: "destructive",
         });
-        return currentState; 
+        return currentState;
       }
   
       const isNowCharging = !currentState.isCharging;
@@ -111,12 +111,12 @@ export function useVehicleSimulation() {
           lastChargeLog: {
             startTime: now,
             startSOC: currentState.batterySOC,
-          }
+          },
         };
       } else {
         // Stop charging
         const { lastChargeLog, chargingLogs, batterySOC } = currentState;
-        if (!lastChargeLog) return { ...currentState, isCharging: false }; 
+        if (!lastChargeLog) return { ...currentState, isCharging: false };
         
         const energyAdded = (batterySOC - lastChargeLog.startSOC) / 100 * currentState.packNominalCapacity_kWh;
         
@@ -134,7 +134,7 @@ export function useVehicleSimulation() {
           ...currentState,
           isCharging: false,
           chargingLogs: newLogs,
-          lastChargeLog: undefined, // Important: clear lastChargeLog
+          lastChargeLog: undefined,
         };
       }
     });
