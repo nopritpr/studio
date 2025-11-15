@@ -91,54 +91,54 @@ export function useVehicleSimulation() {
 
   const toggleCharging = useCallback(() => {
     setVehicleState(currentState => {
-      if (currentState.speed > 0 && !currentState.isCharging) {
-        toast({
-          title: "Cannot start charging",
-          description: "Vehicle must be stationary to start charging.",
-          variant: "destructive",
-        });
-        return currentState;
-      }
-  
-      const isNowCharging = !currentState.isCharging;
-      const now = Date.now();
-  
-      if (isNowCharging) {
-        // Start charging
-        return {
-          ...currentState,
-          isCharging: true,
-          lastChargeLog: {
-            startTime: now,
-            startSOC: currentState.batterySOC,
-          },
-        };
-      } else {
-        // Stop charging
-        const { lastChargeLog, chargingLogs, batterySOC } = currentState;
-        if (!lastChargeLog) return { ...currentState, isCharging: false };
-        
-        const energyAdded = (batterySOC - lastChargeLog.startSOC) / 100 * currentState.packNominalCapacity_kWh;
-        
-        const newLog: ChargingLog = {
-          startTime: lastChargeLog.startTime,
-          endTime: now,
-          startSOC: lastChargeLog.startSOC,
-          endSOC: batterySOC,
-          energyAdded: Math.max(0, energyAdded),
-        };
-        
-        const newLogs = [...chargingLogs, newLog].slice(-10);
-  
-        return {
-          ...currentState,
-          isCharging: false,
-          chargingLogs: newLogs,
-          lastChargeLog: undefined,
-        };
-      }
+        if (currentState.speed > 0 && !currentState.isCharging) {
+            toast({
+                title: "Cannot start charging",
+                description: "Vehicle must be stationary to start charging.",
+                variant: "destructive",
+            });
+            return currentState;
+        }
+
+        const isNowCharging = !currentState.isCharging;
+        const now = Date.now();
+
+        if (isNowCharging) {
+            // Start charging
+            return {
+                ...currentState,
+                isCharging: true,
+                lastChargeLog: {
+                    startTime: now,
+                    startSOC: currentState.batterySOC,
+                },
+            };
+        } else {
+            // Stop charging
+            const { lastChargeLog, chargingLogs, batterySOC } = currentState;
+            if (!lastChargeLog) return { ...currentState, isCharging: false };
+
+            const energyAdded = (batterySOC - lastChargeLog.startSOC) / 100 * currentState.packNominalCapacity_kWh;
+
+            const newLog: ChargingLog = {
+                startTime: lastChargeLog.startTime,
+                endTime: now,
+                startSOC: lastChargeLog.startSOC,
+                endSOC: batterySOC,
+                energyAdded: Math.max(0, energyAdded),
+            };
+
+            const newLogs = [...chargingLogs, newLog].slice(-10);
+
+            return {
+                ...currentState,
+                isCharging: false,
+                chargingLogs: newLogs,
+                lastChargeLog: undefined,
+            };
+        }
     });
-  }, [toast]);
+}, [toast]);
 
   const resetTrip = () => {
     const currentState = vehicleStateRef.current;
@@ -388,11 +388,11 @@ export function useVehicleSimulation() {
     let newEcoScore = prevState.ecoScore;
     if (newSpeedKmh > 1 && !prevState.isCharging) {
       // Penalty for harsh acceleration
-      const accelPenalty = Math.max(0, currentAcceleration - 1.5) * 10;
+      const accelPenalty = Math.max(0, currentAcceleration - 1.5) * 1.5;
       
-      // Penalty for inefficient energy use
+      // Penalty for inefficient energy use, relative to a baseline
       const consumptionRatio = currentWhPerKm / EV_CONSTANTS.baseConsumption;
-      const efficiencyPenalty = Math.max(0, (consumptionRatio - 1)) * 20;
+      const efficiencyPenalty = Math.max(0, (consumptionRatio - 1.2)) * 10;
 
       // Calculate score for this frame (0-100)
       const currentScore = 100 - accelPenalty - efficiencyPenalty;
@@ -549,7 +549,3 @@ export function useVehicleSimulation() {
     toggleGoodsInBoot,
   };
 }
-
-    
-
-    
