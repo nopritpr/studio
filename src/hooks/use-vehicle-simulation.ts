@@ -250,7 +250,7 @@ export function useVehicleSimulation() {
     }
   }, 500), []);
 
-  const triggerFatigueCheck = debounce(async () => {
+  const triggerFatigueCheck = async () => {
     const currentState = vehicleStateRef.current;
     
     if (currentState.speed < 10) {
@@ -275,7 +275,7 @@ export function useVehicleSimulation() {
     } catch (error) {
       console.error("Error calling monitorDriverFatigue:", error);
     }
-  }, 2000);
+  };
 
 
   const triggerIdlePrediction = useCallback(debounce(async () => {
@@ -437,7 +437,7 @@ export function useVehicleSimulation() {
     }
 
     requestRef.current = requestAnimationFrame(updateVehicleState);
-  }, [toast, triggerFatigueCheck]);
+  }, [toast]);
 
   useEffect(() => {
     calculateDynamicRange();
