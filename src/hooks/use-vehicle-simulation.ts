@@ -250,10 +250,36 @@ export function useVehicleSimulation() {
     }
   }, 500), []);
 
+  const triggerIdlePrediction = useCallback(debounce(async () => {
+    const currentState = vehicleStateRef.current;
+    if (currentState.speed > 0 || currentState.isCharging) return;
+    try {
+      const drainInput: PredictiveIdleDrainInput = {
+        currentBatterySOC: currentState.batterySOC,
+        acOn: currentState.acOn,
+        acTemp: currentState.acTemp,
+        outsideTemp: currentState.outsideTemp,
+        passengers: currentState.passengers,
+        goodsInBoot: currentState.goodsInBoot,
+      };
+      const drainResult = await predictIdleDrain(drainInput);
+      setAiState(prevState => ({ ...prevState, idleDrainPrediction: drainResult }));
+    } catch (error) {
+      console.error("Error calling predictIdleDrain:", error);
+    }
+  }, 5000), []);
+
+  const lastFatigueCheckTime = useRef(0);
+
   const triggerFatigueCheck = async () => {
     const currentState = vehicleStateRef.current;
     
     if (currentState.speed < 10) {
+      setAiState(prevState => ({
+        ...prevState,
+        fatigueLevel: 0,
+        fatigueWarning: null
+      }));
       return;
     }
     
@@ -277,27 +303,6 @@ export function useVehicleSimulation() {
     }
   };
 
-
-  const triggerIdlePrediction = useCallback(debounce(async () => {
-    const currentState = vehicleStateRef.current;
-    if (currentState.speed > 0 || currentState.isCharging) return;
-    try {
-      const drainInput: PredictiveIdleDrainInput = {
-        currentBatterySOC: currentState.batterySOC,
-        acOn: currentState.acOn,
-        acTemp: currentState.acTemp,
-        outsideTemp: currentState.outsideTemp,
-        passengers: currentState.passengers,
-        goodsInBoot: currentState.goodsInBoot,
-      };
-      const drainResult = await predictIdleDrain(drainInput);
-      setAiState(prevState => ({ ...prevState, idleDrainPrediction: drainResult }));
-    } catch (error) {
-      console.error("Error calling predictIdleDrain:", error);
-    }
-  }, 5000), []);
-
-  const lastFatigueCheckTime = useRef(0);
 
   const updateVehicleState = useCallback(() => {
     const prevState = vehicleStateRef.current;
@@ -413,8 +418,8 @@ export function useVehicleSimulation() {
       ecoScore: newEcoScore,
       packSOH: Math.max(70, prevState.packSOH - Math.abs((prevState.batterySOC - newSOC) * 0.000001)),
       equivalentFullCycles: prevState.equivalentFullCycles + Math.abs((prevState.batterySOC - newSOC) / 100),
-      speedHistory: [newSpeedKmh, ...prevState.speedHistory].slice(0, 60),
-      accelerationHistory: [currentAcceleration, ...prevState.accelerationHistory].slice(0, 60),
+      speedHistory: [newSpeedKmh, ...prevState.speedHistory].slice(0, 150),
+      accelerationHistory: [currentAcceleration, ...prevState.accelerationHistory].slice(0, 150),
     };
 
     if (newOdometer > lastSohHistoryUpdateOdometer.current + 500) {

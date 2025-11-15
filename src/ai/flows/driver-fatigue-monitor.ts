@@ -14,8 +14,8 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const DriverFatigueInputSchema = z.object({
-  speedHistory: z.array(z.number()).describe('The history of the driver speed in km/h over the last 60 seconds.'),
-  accelerationHistory: z.array(z.number()).describe('The history of the driver acceleration in m/s^2 over the last 60 seconds.'),
+  speedHistory: z.array(z.number()).describe('The history of the driver speed in km/h over the last 10 seconds.'),
+  accelerationHistory: z.array(z.number()).describe('The history of the driver acceleration in m/s^2 over the last 10 seconds.'),
   harshBrakingEvents: z.number().optional().describe('Count of harsh braking events in the window.'),
 });
 export type DriverFatigueInput = z.infer<typeof DriverFatigueInputSchema>;
@@ -40,6 +40,7 @@ const driverFatigueMonitorFlow = ai.defineFlow(
   async (input) => {
     const { speedHistory, accelerationHistory } = input;
     
+    // Require at least a few seconds of data
     if (speedHistory.length < 10 || accelerationHistory.length < 10) {
       return {
         isFatigued: false,
