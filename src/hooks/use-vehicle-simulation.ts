@@ -196,7 +196,6 @@ export function useVehicleSimulation() {
 
     let penaltyPercentage = { ac: 0, load: 0, temp: 0, driveMode: 0 };
     
-    // A/C penalty now directly uses the AI model's output for consistency
     if (currentAiState.acUsageImpact && currentState.acOn) {
         const acImpactKmPerHour = Math.abs(currentAiState.acUsageImpact.rangeImpactKm);
         const estimatedDriveHours = currentState.speed > 0 ? (idealRange / currentState.speed) : 4;
@@ -271,9 +270,9 @@ export function useVehicleSimulation() {
 
   const lastFatigueCheckTime = useRef(0);
 
-  const triggerFatigueCheck = async () => {
+  const triggerFatigueCheck = useCallback(async () => {
     const currentState = vehicleStateRef.current;
-        
+    if (currentState.speed < 1) return;
     if (currentState.speedHistory.length < 10) return;
 
     try {
@@ -292,7 +291,15 @@ export function useVehicleSimulation() {
     } catch (error) {
       console.error("Error calling monitorDriverFatigue:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const now = Date.now();
+    if (now > lastFatigueCheckTime.current + 2000) {
+      triggerFatigueCheck();
+      lastFatigueCheckTime.current = now;
+    }
+  }, [vehicleState.speedHistory, triggerFatigueCheck]);
 
 
   const updateVehicleState = useCallback(() => {
@@ -357,8 +364,9 @@ export function useVehicleSimulation() {
 
     if (instantPower < 0) {
       instantPower *= EV_CONSTANTS.regenEfficiency;
+    } else {
+      instantPower /= EV_CONSTANTS.drivetrainEfficiency;
     }
-    instantPower /= EV_CONSTANTS.drivetrainEfficiency;
 
     if (prevState.acOn) {
         instantPower += EV_CONSTANTS.acPower_kW * (Math.min(1, Math.abs(prevState.acTemp - prevState.outsideTemp) / 10));
@@ -426,11 +434,6 @@ export function useVehicleSimulation() {
     }
     
     setVehicleState(newVehicleState);
-
-    if (now > lastFatigueCheckTime.current + 2000) {
-        triggerFatigueCheck();
-        lastFatigueCheckTime.current = now;
-    }
 
     requestRef.current = requestAnimationFrame(updateVehicleState);
   }, []);
