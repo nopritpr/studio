@@ -437,7 +437,7 @@ export function useVehicleSimulation() {
     }
 
     requestRef.current = requestAnimationFrame(updateVehicleState);
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     calculateDynamicRange();
