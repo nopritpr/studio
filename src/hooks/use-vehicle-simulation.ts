@@ -250,13 +250,13 @@ export function useVehicleSimulation() {
     }
   }, 500), []);
 
-  const triggerFatigueCheck = useCallback(debounce(async () => {
+  const triggerFatigueCheck = debounce(async () => {
     const currentState = vehicleStateRef.current;
     const { speedHistory, accelerationHistory, speed } = currentState;
 
     if (speed < 10) {
-      // Don't check for fatigue at low speed, but also don't reset the warning if it's already active.
-      // The warning will clear when fatigue confidence drops below the threshold on a subsequent check.
+      // Don't check for fatigue at low speed.
+      // The fatigue state will be preserved until the next check at higher speed.
       return;
     }
     
@@ -268,17 +268,19 @@ export function useVehicleSimulation() {
         accelerationHistory: accelerationHistory,
       };
       const fatigueResult = await monitorDriverFatigue(fatigueInput);
-
+      
       setAiState(prevState => ({
         ...prevState,
         fatigueLevel: fatigueResult.confidence,
+        // Only clear the warning if confidence drops below the recovery threshold.
         fatigueWarning: fatigueResult.isFatigued ? fatigueResult.reasoning : (fatigueResult.confidence < 0.5 ? null : prevState.fatigueWarning),
       }));
 
     } catch (error) {
       console.error("Error calling monitorDriverFatigue:", error);
     }
-  }, 2000), []);
+  }, 2000);
+
 
   const triggerIdlePrediction = useCallback(debounce(async () => {
     const currentState = vehicleStateRef.current;
@@ -389,12 +391,9 @@ export function useVehicleSimulation() {
     let newEcoScore = prevState.ecoScore;
     if (newSpeedKmh > 1 && !prevState.isCharging) {
       const accelPenalty = Math.max(0, currentAcceleration - 1.5) * 2.0;
-      
-      const consumptionRatio = currentWhPerKm / EV_CONSTANTS.baseConsumption;
-      const efficiencyPenalty = Math.max(0, (consumptionRatio - 1.0)) * 25;
-
+      const deviation = currentWhPerKm - EV_CONSTANTS.baseConsumption;
+      const efficiencyPenalty = Math.max(0, deviation / EV_CONSTANTS.baseConsumption) * 25;
       const currentScore = 100 - accelPenalty - efficiencyPenalty;
-      
       newEcoScore = prevState.ecoScore * 0.99 + Math.max(0, currentScore) * 0.01;
     }
 
@@ -442,7 +441,7 @@ export function useVehicleSimulation() {
     }
 
     requestRef.current = requestAnimationFrame(updateVehicleState);
-  }, [triggerAcUsageImpact, triggerFatigueCheck, triggerIdlePrediction, toast]);
+  }, [toast]);
 
   useEffect(() => {
     calculateDynamicRange();
