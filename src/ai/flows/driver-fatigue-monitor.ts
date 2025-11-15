@@ -66,7 +66,7 @@ const driverFatigueMonitorFlow = ai.defineFlow(
     
     // --- Step 4: Fatigue Score Calculation (Recalibrated for High Sensitivity) ---
     // These weights and intercept are tuned to be highly sensitive to deviations from normal driving.
-    const B0 = -4.0;  // Intercept calibrated to keep score low during normal driving.
+    const B0 = -3.0;  // Intercept calibrated to keep score low during normal driving.
     const w_speed_var = 0.8;   // High sensitivity to speed variance
     const w_sharp_brake = 1.0;  // Very high penalty for each sharp brake event
     const w_accel_incon = 2.5;   // High sensitivity to jerky movements

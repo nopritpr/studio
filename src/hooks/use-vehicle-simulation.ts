@@ -273,11 +273,7 @@ export function useVehicleSimulation() {
 
   const triggerFatigueCheck = async () => {
     const currentState = vehicleStateRef.current;
-    
-    if (currentState.speed < 10 && currentState.fatigueLevel === 0) {
-      return;
-    }
-    
+        
     if (currentState.speedHistory.length < 10) return;
 
     try {
