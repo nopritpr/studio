@@ -89,56 +89,54 @@ export function useVehicleSimulation() {
     setVehicleState({ goodsInBoot: !vehicleStateRef.current.goodsInBoot });
   };
 
-  const toggleCharging = useCallback(() => {
-    setVehicleState(currentState => {
-        if (currentState.speed > 0 && !currentState.isCharging) {
-            toast({
-                title: "Cannot start charging",
-                description: "Vehicle must be stationary to start charging.",
-                variant: "destructive",
-            });
-            return currentState;
+  const toggleCharging = () => {
+    const currentState = vehicleStateRef.current;
+    if (currentState.speed > 0 && !currentState.isCharging) {
+        toast({
+            title: "Cannot start charging",
+            description: "Vehicle must be stationary to start charging.",
+            variant: "destructive",
+        });
+        return;
+    }
+
+    const isNowCharging = !currentState.isCharging;
+    const now = Date.now();
+
+    if (isNowCharging) {
+        setVehicleState({
+            isCharging: true,
+            lastChargeLog: {
+                startTime: now,
+                startSOC: currentState.batterySOC,
+            },
+        });
+    } else {
+        const { lastChargeLog, chargingLogs, batterySOC } = currentState;
+        if (!lastChargeLog) {
+             setVehicleState({ isCharging: false });
+             return;
         }
 
-        const isNowCharging = !currentState.isCharging;
-        const now = Date.now();
+        const energyAdded = (batterySOC - lastChargeLog.startSOC) / 100 * currentState.packNominalCapacity_kWh;
 
-        if (isNowCharging) {
-            // Start charging
-            return {
-                ...currentState,
-                isCharging: true,
-                lastChargeLog: {
-                    startTime: now,
-                    startSOC: currentState.batterySOC,
-                },
-            };
-        } else {
-            // Stop charging
-            const { lastChargeLog, chargingLogs, batterySOC } = currentState;
-            if (!lastChargeLog) return { ...currentState, isCharging: false };
+        const newLog: ChargingLog = {
+            startTime: lastChargeLog.startTime,
+            endTime: now,
+            startSOC: lastChargeLog.startSOC,
+            endSOC: batterySOC,
+            energyAdded: Math.max(0, energyAdded),
+        };
 
-            const energyAdded = (batterySOC - lastChargeLog.startSOC) / 100 * currentState.packNominalCapacity_kWh;
+        const newLogs = [...chargingLogs, newLog].slice(-10);
 
-            const newLog: ChargingLog = {
-                startTime: lastChargeLog.startTime,
-                endTime: now,
-                startSOC: lastChargeLog.startSOC,
-                endSOC: batterySOC,
-                energyAdded: Math.max(0, energyAdded),
-            };
-
-            const newLogs = [...chargingLogs, newLog].slice(-10);
-
-            return {
-                ...currentState,
-                isCharging: false,
-                chargingLogs: newLogs,
-                lastChargeLog: undefined,
-            };
-        }
-    });
-}, [toast]);
+        setVehicleState({
+            isCharging: false,
+            chargingLogs: newLogs,
+            lastChargeLog: undefined,
+        });
+    }
+  };
 
   const resetTrip = () => {
     const currentState = vehicleStateRef.current;
@@ -531,7 +529,7 @@ export function useVehicleSimulation() {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toggleCharging]);
+  }, []);
 
   return {
     state: { ...vehicleState, ...aiState },
