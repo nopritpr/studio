@@ -252,19 +252,17 @@ export function useVehicleSimulation() {
 
   const triggerFatigueCheck = debounce(async () => {
     const currentState = vehicleStateRef.current;
-    const { speedHistory, accelerationHistory, speed } = currentState;
-
-    if (speed < 10) {
-      // Preserve the fatigue state when at low speed, don't reset it
+    
+    if (currentState.speed < 10) {
       return;
     }
     
-    if (speedHistory.length < 10) return;
+    if (currentState.speedHistory.length < 10) return;
 
     try {
       const fatigueInput: DriverFatigueInput = {
-        speedHistory: speedHistory,
-        accelerationHistory: accelerationHistory,
+        speedHistory: currentState.speedHistory,
+        accelerationHistory: currentState.accelerationHistory,
       };
       const fatigueResult = await monitorDriverFatigue(fatigueInput);
       
@@ -439,7 +437,7 @@ export function useVehicleSimulation() {
     }
 
     requestRef.current = requestAnimationFrame(updateVehicleState);
-  }, [toast]);
+  }, [toast, triggerFatigueCheck]);
 
   useEffect(() => {
     calculateDynamicRange();
