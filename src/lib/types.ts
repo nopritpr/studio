@@ -109,6 +109,10 @@ export interface WeatherData {
   wind: {
     speed: number;
   };
+  coord: {
+    lat: number;
+    lon: number;
+  },
   name: string;
 }
 
@@ -205,6 +209,7 @@ export interface PredictiveIdleDrainOutput {
 export interface AcUsageImpactOutput {
   rangeImpactKm: number;
   recommendation: string;
+  reasoning: string;
 }
 
 const WeatherDayInputSchema = z.object({

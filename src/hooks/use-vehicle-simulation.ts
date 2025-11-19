@@ -47,8 +47,12 @@ export function useVehicleSimulation() {
   const requestRef = useRef<number>();
   
   const lastSohHistoryUpdateOdometer = useRef(vehicleState.odometer);
-  const lastFatigueCheckTime = useRef(0);
   
+  const vehicleStateRef = useRef(vehicleState);
+  useEffect(() => {
+    vehicleStateRef.current = vehicleState;
+  }, [vehicleState]);
+
   const aiStateRef = useRef(aiState);
   useEffect(() => {
     aiStateRef.current = aiState;
@@ -56,11 +60,11 @@ export function useVehicleSimulation() {
 
 
   const setDriveMode = (mode: DriveMode) => {
-    setVehicleState({ driveMode: mode, driveModeHistory: [mode, ...vehicleState.driveModeHistory].slice(0, 10) as DriveMode[] });
+    setVehicleState({ driveMode: mode, driveModeHistory: [mode, ...vehicleStateRef.current.driveModeHistory].slice(0, 10) as DriveMode[] });
   };
 
   const toggleAC = () => {
-     setVehicleState({ acOn: !vehicleState.acOn });
+     setVehicleState({ acOn: !vehicleStateRef.current.acOn });
   };
 
   const setAcTemp = (temp: number) => {
@@ -72,7 +76,7 @@ export function useVehicleSimulation() {
   };
 
   const toggleGoodsInBoot = () => {
-    setVehicleState({ goodsInBoot: !vehicleState.goodsInBoot });
+    setVehicleState({ goodsInBoot: !vehicleStateRef.current.goodsInBoot });
   };
 
   const toggleCharging = useCallback(() => {
@@ -133,7 +137,7 @@ export function useVehicleSimulation() {
   const setActiveTrip = (trip: 'A' | 'B') => setVehicleState({ activeTrip: trip });
 
   const switchProfile = (profileName: string) => {
-    const currentState = vehicleState;
+    const currentState = vehicleStateRef.current;
     if (currentState.profiles[profileName]) {
         setVehicleState({
             activeProfile: profileName,
@@ -144,7 +148,7 @@ export function useVehicleSimulation() {
   };
 
   const addProfile = (profileName: string, profileDetails: Omit<Profile, 'driveMode' | 'acTemp'>) => {
-    const currentState = vehicleState;
+    const currentState = vehicleStateRef.current;
     if (profileName && !currentState.profiles[profileName]) {
         const newProfile: Profile = {
             ...profileDetails,
@@ -180,7 +184,8 @@ export function useVehicleSimulation() {
     });
   };
 
-  const triggerFatigueCheck = useCallback(async (state: VehicleState) => {
+  const triggerFatigueCheck = useCallback(async () => {
+    const state = vehicleStateRef.current;
     if (state.speed < 10) {
       if (aiStateRef.current.fatigueWarning) {
         setAiState({ fatigueWarning: null });
@@ -206,7 +211,6 @@ export function useVehicleSimulation() {
       console.error("Error calling monitorDriverFatigue:", error);
     }
   }, []);
-
   
   const calculateDynamicRange = useCallback((state: VehicleState, aiState: AiState) => {
     const idealRange = state.initialRange * (state.batterySOC / 100);
@@ -249,7 +253,8 @@ export function useVehicleSimulation() {
     setVehicleState({ range: predictedRange, predictedDynamicRange: predictedRange, rangePenalties: finalPenalties });
   }, []);
 
-  const triggerAcUsageImpact = useCallback(async (state: VehicleState) => {
+  const triggerAcUsageImpact = useCallback(async () => {
+    const state = vehicleStateRef.current;
     try {
       const acImpactInput: AcUsageImpactInput = {
         acOn: state.acOn,
@@ -265,7 +270,8 @@ export function useVehicleSimulation() {
     }
   }, []);
 
-  const triggerIdlePrediction = useCallback(async (state: VehicleState) => {
+  const triggerIdlePrediction = useCallback(async () => {
+    const state = vehicleStateRef.current;
     if (state.speed > 0 || state.isCharging) return;
     try {
       const drainInput: PredictiveIdleDrainInput = {
@@ -285,14 +291,19 @@ export function useVehicleSimulation() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-        setVehicleState(currentVehicleState => {
-          triggerAcUsageImpact(currentVehicleState);
-          triggerIdlePrediction(currentVehicleState);
-          return currentVehicleState;
-        });
+      triggerAcUsageImpact();
+      triggerIdlePrediction();
     }, 5000);
-    return () => clearInterval(interval);
-  }, [triggerAcUsageImpact, triggerIdlePrediction]);
+
+    const fatigueInterval = setInterval(() => {
+      triggerFatigueCheck();
+    }, 2000);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(fatigueInterval);
+    };
+  }, [triggerAcUsageImpact, triggerIdlePrediction, triggerFatigueCheck]);
 
   useEffect(() => {
     calculateDynamicRange(vehicleState, aiState);
@@ -335,6 +346,7 @@ export function useVehicleSimulation() {
   const updateVehicleState = useCallback((prevState: VehicleState): VehicleState => {
     const now = Date.now();
     const timeDelta = (now - prevState.lastUpdate) / 1000;
+    if (timeDelta <= 0) return prevState;
     
     if (prevState.isCharging) {
         let newSOC = prevState.batterySOC;
@@ -453,12 +465,6 @@ export function useVehicleSimulation() {
       accelerationHistory: [currentAcceleration, ...prevState.accelerationHistory].slice(0, 10),
     };
     
-    if (now > lastFatigueCheckTime.current + 2000) {
-        triggerFatigueCheck(prevState);
-        lastFatigueCheckTime.current = now;
-    }
-
-
     if (newOdometer > lastSohHistoryUpdateOdometer.current + 500) {
         lastSohHistoryUpdateOdometer.current = newOdometer;
         const newSohEntry: SohHistoryEntry = {
@@ -472,8 +478,7 @@ export function useVehicleSimulation() {
     }
     
     return {...prevState, ...newVehicleState};
-  }, [triggerFatigueCheck]);
-
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -516,6 +521,52 @@ export function useVehicleSimulation() {
     };
   }, [toggleCharging, updateVehicleState]);
 
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(position => {
+        setVehicleState({
+            weather: { ...vehicleState.weather, coord: { lat: position.coords.latitude, lon: position.coords.longitude } } as any,
+        })
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchWeatherData = async () => {
+      const lat = vehicleState.weather?.coord?.lat;
+      const lon = vehicleState.weather?.coord?.lon;
+
+      if (!lat || !lon) return;
+      try {
+        const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`);
+        let weatherData: WeatherData | null = null;
+        if (weatherResponse.ok) {
+          weatherData = await weatherResponse.json();
+        }
+
+        const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`);
+        let forecastData: FiveDayForecast | null = null;
+        if (forecastResponse.ok) {
+          forecastData = await forecastResponse.json();
+        }
+        
+        setVehicleState({ 
+          weather: weatherData, 
+          weatherForecast: forecastData,
+          outsideTemp: weatherData?.main.temp || 25 
+        });
+
+      } catch (error) {
+        console.error("Failed to fetch weather data", error);
+      }
+    };
+
+    fetchWeatherData();
+    const interval = setInterval(fetchWeatherData, 300000);
+    return () => clearInterval(interval);
+  }, [vehicleState.weather?.coord?.lat, vehicleState.weather?.coord?.lon]);
+
+
   return {
     state: { ...vehicleState, ...aiState },
     setState: setVehicleState,
@@ -532,9 +583,3 @@ export function useVehicleSimulation() {
     toggleGoodsInBoot,
   };
 }
-
-    
-
-    
-
-    

@@ -24,7 +24,7 @@ import {
 
 interface DashboardTabProps {
   state: VehicleState;
-  setState: React.Dispatch<Partial<VehicleState>>;
+  setState: React.Dispatch<React.SetStateAction<Partial<VehicleState>>>;
   setDriveMode: (mode: DriveMode) => void;
   toggleAC: () => void;
   setAcTemp: (temp: number) => void;
@@ -48,54 +48,19 @@ export default function DashboardTab({
   toggleGoodsInBoot,
 }: DashboardTabProps) {
   const { toast } = useToast();
-  const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [forecast, setForecast] = useState<FiveDayForecast | null>(null);
-  const [lng, setLng] = useState(-122.4);
-  const [lat, setLat] = useState(37.8);
+  
+  const lat = state.weather?.coord?.lat || 37.8;
+  const lng = state.weather?.coord?.lon || -122.4;
 
-  useEffect(() => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(position => {
-        setLng(position.coords.longitude);
-        setLat(position.coords.latitude);
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    const fetchWeatherData = async () => {
-      if (!lat || !lng) return;
-      try {
-        const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`);
-        let weatherData: WeatherData | null = null;
-        if (weatherResponse.ok) {
-          weatherData = await weatherResponse.json();
-          setWeather(weatherData);
-        }
-
-        const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&units=metric&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`);
-        let forecastData: FiveDayForecast | null = null;
-        if (forecastResponse.ok) {
-          forecastData = await forecastResponse.json();
-          setForecast(forecastData);
-        }
-        
-        setState({ 
-          weather: weatherData, 
-          weatherForecast: forecastData,
-          outsideTemp: weatherData?.main.temp || 25 
-        });
-
-      } catch (error) {
-        console.error("Failed to fetch weather data", error);
-      }
-    };
-
-    fetchWeatherData();
-    const interval = setInterval(fetchWeatherData, 300000);
-    return () => clearInterval(interval);
-  }, [lat, lng, setState]);
-
+  const handleLocationChange = (newLat: number, newLng: number) => {
+    setState(prevState => ({
+      ...prevState,
+      weather: {
+        ...prevState.weather,
+        coord: { lat: newLat, lon: newLng }
+      } as any
+    }));
+  };
 
   const handleChargingToggle = () => {
     if (state.speed > 0 && !state.isCharging) {
@@ -213,7 +178,7 @@ export default function DashboardTab({
 
       {/* Center Column */}
       <Card className="col-span-12 md:col-span-6 p-4 flex flex-col relative min-h-0">
-        <NavigationMap lat={lat} lng={lng} onLocationChange={(newLat, newLng) => {setLat(newLat); setLng(newLng);}} />
+        <NavigationMap lat={lat} lng={lng} onLocationChange={handleLocationChange} />
       </Card>
 
       {/* Right Column */}
@@ -246,7 +211,7 @@ export default function DashboardTab({
         </div>
 
         <div className="flex-grow min-h-0">
-          <Weather weather={weather} forecast={forecast} />
+          <Weather weather={state.weather} forecast={state.weatherForecast} />
         </div>
 
         <Card className="p-4">
