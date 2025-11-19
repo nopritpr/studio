@@ -75,7 +75,7 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
             <Card className="flex flex-col">
                 <CardHeader>
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><Zap className="w-4 h-4"/>Charging Habit</CardTitle>
-                    <CardDescription className="text-xs -mt-2">A K-Means clustering model groups charging sessions by time to identify user habits.</CardDescription>
+                    <CardDescription className="text-xs -mt-2">Charging sessions are categorized by time of day to identify user habits.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <ChargingHabitChart data={analyzeChargingPatterns()} />
@@ -108,7 +108,7 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                 <CardHeader className="p-4">
                     <h4 className="font-semibold text-sm font-headline flex items-center gap-2 mb-1"><TrendingUp className="w-4 h-4" />Dynamic Range Factors</h4>
                     <CardDescription className="text-xs -mt-2">A regression model analyzes real-time data to predict how each factor impacts the vehicle's range.</CardDescription>
-                </CardHeader>
+                </Header>
                 <CardContent className="p-4 pt-0 h-full flex-grow min-h-0">
                     <DynamicRangeChart state={state} />
                 </CardContent>
