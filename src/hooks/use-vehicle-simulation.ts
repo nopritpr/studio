@@ -285,11 +285,14 @@ export function useVehicleSimulation() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-        triggerAcUsageImpact(vehicleState);
-        triggerIdlePrediction(vehicleState);
+        setVehicleState(currentVehicleState => {
+          triggerAcUsageImpact(currentVehicleState);
+          triggerIdlePrediction(currentVehicleState);
+          return currentVehicleState;
+        });
     }, 5000);
     return () => clearInterval(interval);
-  }, [triggerAcUsageImpact, triggerIdlePrediction, vehicleState]);
+  }, [triggerAcUsageImpact, triggerIdlePrediction]);
 
   useEffect(() => {
     calculateDynamicRange(vehicleState, aiState);
@@ -332,7 +335,7 @@ export function useVehicleSimulation() {
   const updateVehicleState = useCallback((prevState: VehicleState): VehicleState => {
     const now = Date.now();
     const timeDelta = (now - prevState.lastUpdate) / 1000;
-
+    
     if (prevState.isCharging) {
         let newSOC = prevState.batterySOC;
         const chargePerSecond = 1 / 5; // 1% SOC every 5 seconds
@@ -529,6 +532,8 @@ export function useVehicleSimulation() {
     toggleGoodsInBoot,
   };
 }
+
+    
 
     
 
