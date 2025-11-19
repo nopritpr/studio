@@ -59,19 +59,18 @@ export function useVehicleSimulation() {
 
   const toggleCharging = useCallback(() => {
     setVehicleState(prevState => {
-        if (prevState.speed > 0 && !prevState.isCharging) {
-          toast({
-            title: "Cannot start charging",
-            description: "Vehicle must be stationary to start charging.",
-            variant: "destructive",
-          });
-          return prevState;
-        }
-
         const isNowCharging = !prevState.isCharging;
         const now = Date.now();
     
         if (isNowCharging) {
+            if (prevState.speed > 0) {
+              toast({
+                title: "Cannot start charging",
+                description: "Vehicle must be stationary to start charging.",
+                variant: "destructive",
+              });
+              return prevState;
+            }
             return {
                 ...prevState,
                 isCharging: true,
@@ -116,28 +115,32 @@ export function useVehicleSimulation() {
   const setActiveTrip = useCallback((trip: 'A' | 'B') => setVehicleState(prevState => ({...prevState, activeTrip: trip})), []);
 
   const switchProfile = useCallback((profileName: string) => {
-    const currentState = stateRef.current;
-    if (currentState.profiles[profileName]) {
-        setVehicleState(prevState => ({
-            ...prevState,
-            activeProfile: profileName,
-            ...currentState.profiles[profileName]
-        }));
-        toast({ title: `Switched to ${profileName}'s profile.`});
-    }
+    setVehicleState(prevState => {
+      if (prevState.profiles[profileName]) {
+          toast({ title: `Switched to ${profileName}'s profile.`});
+          return {
+              ...prevState,
+              activeProfile: profileName,
+              ...prevState.profiles[profileName]
+          };
+      }
+      return prevState;
+    });
   }, [toast]);
 
   const addProfile = useCallback((profileName: string, profileDetails: Omit<Profile, 'driveMode' | 'acTemp'>) => {
-    const currentState = stateRef.current;
-    if (profileName && !currentState.profiles[profileName]) {
-        const newProfile: Profile = {
-            ...profileDetails,
-            driveMode: 'Eco',
-            acTemp: 22,
-        };
-        setVehicleState(prevState => ({ ...prevState, profiles: { ...prevState.profiles, [profileName]: newProfile } }));
-        toast({ title: `Profile ${profileName} added.`});
-    }
+    setVehicleState(prevState => {
+      if (profileName && !prevState.profiles[profileName]) {
+          const newProfile: Profile = {
+              ...profileDetails,
+              driveMode: 'Eco',
+              acTemp: 22,
+          };
+          toast({ title: `Profile ${profileName} added.`});
+          return { ...prevState, profiles: { ...prevState.profiles, [profileName]: newProfile } };
+      }
+      return prevState;
+    });
   }, [toast]);
 
   const deleteProfile = useCallback((profileName: string) => {
@@ -162,7 +165,7 @@ export function useVehicleSimulation() {
         return prevState;
     });
   }, [toast]);
-  
+
   const calculateDynamicRange = useCallback((state: VehicleState, aiState: AiState) => {
     const idealRange = state.initialRange * (state.batterySOC / 100);
 
@@ -201,73 +204,9 @@ export function useVehicleSimulation() {
       driveMode: idealRange * penaltyPercentage.driveMode,
     };
     
-    setVehicleState(prevState => ({...prevState, range: predictedRange, predictedDynamicRange: predictedRange, rangePenalties: finalPenalties }));
+    return { range: predictedRange, predictedDynamicRange: predictedRange, rangePenalties: finalPenalties };
   }, []);
 
-  const triggerAcUsageImpact = useCallback(async () => {
-    const state = stateRef.current;
-    try {
-      const acImpactInput: AcUsageImpactInput = {
-        acOn: state.acOn,
-        acTemp: state.acTemp,
-        outsideTemp: state.outsideTemp,
-        recentEfficiency: state.recentWhPerKm > 0 ? state.recentWhPerKm : 160,
-      };
-      const acImpactResult = await getAcUsageImpact(acImpactInput);
-      setVehicleState(prevState => ({ ...prevState, acUsageImpact: acImpactResult }));
-    } catch (error) {
-      console.error("Error calling getAcUsageImpact:", error);
-      setVehicleState(prevState => ({ ...prevState, acUsageImpact: null }));
-    }
-  }, []);
-
-  const triggerIdlePrediction = useCallback(async () => {
-    const state = stateRef.current;
-    if (state.speed > 0 || state.isCharging) return;
-    try {
-      const drainInput: PredictiveIdleDrainInput = {
-        currentBatterySOC: state.batterySOC,
-        acOn: state.acOn,
-        acTemp: state.acTemp,
-        outsideTemp: state.outsideTemp,
-        passengers: state.passengers,
-        goodsInBoot: state.goodsInBoot,
-      };
-      const drainResult = await predictIdleDrain(drainInput);
-      setVehicleState(prevState => ({ ...prevState, idleDrainPrediction: drainResult }));
-    } catch (error) {
-      console.error("Error calling predictIdleDrain:", error);
-    }
-  }, []);
-
-  const triggerFatigueCheck = useCallback(() => {
-    const state = stateRef.current;
-    if (state.speed < 10) {
-      if (state.fatigueWarning) {
-        setVehicleState(prevState => ({ ...prevState, fatigueWarning: null }));
-      }
-      return;
-    }
-    if (state.speedHistory.length < 10) return;
-
-    const fatigueInput: DriverFatigueInput = {
-        speedHistory: state.speedHistory,
-        accelerationHistory: state.accelerationHistory,
-    };
-
-    monitorDriverFatigue(fatigueInput)
-      .then(fatigueResult => {
-        setVehicleState(prevState => ({
-          ...prevState,
-          fatigueLevel: fatigueResult.confidence,
-          fatigueWarning: fatigueResult.isFatigued ? fatigueResult.reasoning : (fatigueResult.confidence < 0.5 ? null : prevState.fatigueWarning),
-        }));
-      })
-      .catch(error => {
-        console.error("Error calling monitorDriverFatigue:", error);
-      });
-  }, []);
-  
   const updateVehicleState = useCallback((prevState: VehicleState & AiState): VehicleState & AiState => {
     const now = Date.now();
     const timeDelta = (now - prevState.lastUpdate) / 1000;
@@ -277,11 +216,13 @@ export function useVehicleSimulation() {
         const chargePerSecond = 1 / 5; // 1% SOC every 5 seconds
         newSOC += chargePerSecond * timeDelta;
         newSOC = Math.min(100, newSOC);
+        const rangeUpdates = calculateDynamicRange(prevState, prevState);
         return {
             ...prevState,
             isCharging: prevState.isCharging,
             batterySOC: newSOC,
             lastUpdate: now,
+            ...rangeUpdates
         };
     }
     
@@ -365,6 +306,8 @@ export function useVehicleSimulation() {
     const newRecentWhPerKmWindow = [currentWhPerKm > 0 ? currentWhPerKm : 160, ...prevState.recentWhPerKmWindow].slice(0, 50);
     const newRecentWhPerKm = newRecentWhPerKmWindow.reduce((a, b) => a + b) / newRecentWhPerKmWindow.length;
 
+    const rangeUpdates = calculateDynamicRange(prevState, prevState);
+
     const newVehicleState: Partial<VehicleState & AiState> = {
       speed: newSpeedKmh,
       odometer: newOdometer,
@@ -382,6 +325,7 @@ export function useVehicleSimulation() {
       equivalentFullCycles: prevState.equivalentFullCycles + Math.abs((prevState.batterySOC - newSOC) / 100),
       speedHistory: [newSpeedKmh, ...prevState.speedHistory].slice(0, 10),
       accelerationHistory: [currentAcceleration, ...prevState.accelerationHistory].slice(0, 10),
+      ...rangeUpdates
     };
     
     if (newOdometer > lastSohHistoryUpdateOdometer.current + 500) {
@@ -397,7 +341,7 @@ export function useVehicleSimulation() {
     }
     
     return {...prevState, ...newVehicleState};
-  }, []);
+  }, [calculateDynamicRange]);
 
   // Animation loop
   useEffect(() => {
@@ -449,14 +393,74 @@ export function useVehicleSimulation() {
 
   // AI and external data fetching timers
   useEffect(() => {
+    const triggerAcUsageImpact = async () => {
+      const state = stateRef.current;
+      try {
+        const acImpactInput: AcUsageImpactInput = {
+          acOn: state.acOn,
+          acTemp: state.acTemp,
+          outsideTemp: state.outsideTemp,
+          recentEfficiency: state.recentWhPerKm > 0 ? state.recentWhPerKm : 160,
+        };
+        const acImpactResult = await getAcUsageImpact(acImpactInput);
+        setVehicleState(prevState => ({ ...prevState, acUsageImpact: acImpactResult }));
+      } catch (error) {
+        console.error("Error calling getAcUsageImpact:", error);
+        setVehicleState(prevState => ({ ...prevState, acUsageImpact: null }));
+      }
+    };
+    const triggerIdlePrediction = async () => {
+        const state = stateRef.current;
+        if (state.speed > 0 || state.isCharging) return;
+        try {
+          const drainInput: PredictiveIdleDrainInput = {
+            currentBatterySOC: state.batterySOC,
+            acOn: state.acOn,
+            acTemp: state.acTemp,
+            outsideTemp: state.outsideTemp,
+            passengers: state.passengers,
+            goodsInBoot: state.goodsInBoot,
+          };
+          const drainResult = await predictIdleDrain(drainInput);
+          setVehicleState(prevState => ({ ...prevState, idleDrainPrediction: drainResult }));
+        } catch (error) {
+          console.error("Error calling predictIdleDrain:", error);
+        }
+      };
+
     const aiInterval = setInterval(() => {
       triggerAcUsageImpact();
       triggerIdlePrediction();
     }, 5000);
     
-    const fatigueInterval = setInterval(() => {
-        triggerFatigueCheck();
-    }, 2000);
+    const triggerFatigueCheck = () => {
+        const state = stateRef.current;
+        if (state.speed < 10) {
+            if (state.fatigueWarning) {
+              setVehicleState(prevState => ({ ...prevState, fatigueWarning: null, fatigueLevel: 0 }));
+            }
+            return;
+        }
+        if (state.speedHistory.length < 10) return;
+    
+        const fatigueInput: DriverFatigueInput = {
+            speedHistory: state.speedHistory,
+            accelerationHistory: state.accelerationHistory,
+        };
+    
+        monitorDriverFatigue(fatigueInput)
+          .then(fatigueResult => {
+            setVehicleState(prevState => ({
+              ...prevState,
+              fatigueLevel: fatigueResult.confidence,
+              fatigueWarning: fatigueResult.isFatigued ? fatigueResult.reasoning : (fatigueResult.confidence < 0.5 ? null : prevState.fatigueWarning),
+            }));
+          })
+          .catch(error => {
+            console.error("Error calling monitorDriverFatigue:", error);
+          });
+      };
+    const fatigueInterval = setInterval(triggerFatigueCheck, 2000);
 
     const fetchWeatherData = async () => {
       const state = stateRef.current;
@@ -497,12 +501,7 @@ export function useVehicleSimulation() {
         clearInterval(fatigueInterval);
         clearInterval(weatherInterval);
     };
-  }, [triggerAcUsageImpact, triggerIdlePrediction, triggerFatigueCheck]);
-
-  // Dynamic Range Calculation
-  useEffect(() => {
-    calculateDynamicRange(vehicleState, vehicleState);
-  }, [vehicleState.batterySOC, vehicleState.acOn, vehicleState.acTemp, vehicleState.driveMode, vehicleState.passengers, vehicleState.goodsInBoot, vehicleState.outsideTemp, vehicleState.acUsageImpact, calculateDynamicRange, vehicleState]);
+  }, []);
 
   // Initial Geolocation
   useEffect(() => {
@@ -520,6 +519,7 @@ export function useVehicleSimulation() {
 
   useEffect(() => {
     const forecast = vehicleState.weatherForecast;
+    const currentSOC = vehicleState.batterySOC;
 
     async function triggerWeatherImpactForecast(forecastData: FiveDayForecast | null) {
       if (isWeatherImpactRunning.current || !forecastData) {
@@ -569,3 +569,5 @@ export function useVehicleSimulation() {
     toggleGoodsInBoot,
   };
 }
+
+    
