@@ -184,7 +184,7 @@ export function useVehicleSimulation() {
     });
   };
 
-  const triggerFatigueCheck = useCallback(async () => {
+  const triggerFatigueCheck = async () => {
     const state = vehicleStateRef.current;
     if (state.speed < 10) {
       if (aiStateRef.current.fatigueWarning) {
@@ -210,7 +210,7 @@ export function useVehicleSimulation() {
     } catch (error) {
       console.error("Error calling monitorDriverFatigue:", error);
     }
-  }, []);
+  };
   
   const calculateDynamicRange = useCallback((state: VehicleState, aiState: AiState) => {
     const idealRange = state.initialRange * (state.batterySOC / 100);
@@ -290,20 +290,20 @@ export function useVehicleSimulation() {
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const aiInterval = setInterval(() => {
       triggerAcUsageImpact();
       triggerIdlePrediction();
     }, 5000);
-
+    
     const fatigueInterval = setInterval(() => {
-      triggerFatigueCheck();
+        triggerFatigueCheck();
     }, 2000);
 
     return () => {
-      clearInterval(interval);
-      clearInterval(fatigueInterval);
+        clearInterval(aiInterval);
+        clearInterval(fatigueInterval);
     };
-  }, [triggerAcUsageImpact, triggerIdlePrediction, triggerFatigueCheck]);
+  }, [triggerAcUsageImpact, triggerIdlePrediction]);
 
   useEffect(() => {
     calculateDynamicRange(vehicleState, aiState);
@@ -342,11 +342,10 @@ export function useVehicleSimulation() {
       }
     }
   }, [vehicleState.weatherForecast, vehicleState.batterySOC, vehicleState.initialRange]);
-
+  
   const updateVehicleState = useCallback((prevState: VehicleState): VehicleState => {
     const now = Date.now();
     const timeDelta = (now - prevState.lastUpdate) / 1000;
-    if (timeDelta <= 0) return prevState;
     
     if (prevState.isCharging) {
         let newSOC = prevState.batterySOC;
