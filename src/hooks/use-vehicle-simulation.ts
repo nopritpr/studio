@@ -291,8 +291,9 @@ export function useVehicleSimulation() {
       const accelPenalty = Math.max(0, currentAcceleration - 1.5) * 2.0;
       const deviation = currentWhPerKm - EV_CONSTANTS.baseConsumption;
       const efficiencyPenalty = Math.max(0, deviation / EV_CONSTANTS.baseConsumption) * 25;
-      const currentScore = 100 - accelPenalty - efficiencyPenalty;
-      newEcoScore = prevState.ecoScore * 0.99 + Math.max(0, currentScore) * 0.01;
+      const regenBonus = instantPower < 0 ? Math.abs(instantPower / 50) : 0;
+      const currentScore = 100 - accelPenalty - efficiencyPenalty + regenBonus;
+      newEcoScore = prevState.ecoScore * 0.99 + Math.max(0, Math.min(100, currentScore)) * 0.01;
     }
 
     const newRecentWhPerKmWindow = [currentWhPerKm > 0 ? currentWhPerKm : 160, ...prevState.recentWhPerKmWindow].slice(0, 50);

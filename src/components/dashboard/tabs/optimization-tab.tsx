@@ -4,10 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import EcoScoreGauge from "../charts/eco-score-gauge";
 import type { VehicleState, AiState } from "@/lib/types";
-import { Leaf, User, BrainCircuit, BarChart, Wind } from "lucide-react";
+import { Leaf, User, BrainCircuit, BarChart, Wind, TrendingDown, TrendingUp, Zap } from "lucide-react";
 import IdleDrainChart from "../charts/idle-drain-chart";
 import { EV_CONSTANTS } from "@/lib/constants";
-import { TrendingDown, TrendingUp } from "lucide-react";
 
 interface OptimizationTabProps {
     state: VehicleState & AiState;
@@ -61,9 +60,10 @@ const GreenScoreCard = ({ score }: { score: number }) => {
   );
 };
 
-const EcoScoreReasoning = ({ acceleration, currentWhPerKm }: { acceleration: number, currentWhPerKm: number }) => {
+const EcoScoreReasoning = ({ acceleration, currentWhPerKm, power }: { acceleration: number, currentWhPerKm: number, power: number }) => {
     const isAcceleratingSmoothly = acceleration < 1.5;
-    const isEfficient = currentWhPerKm < EV_CONSTANTS.baseConsumption;
+    const isEfficient = currentWhPerKm > 0 && currentWhPerKm < EV_CONSTANTS.baseConsumption;
+    const isRegenActive = power < 0;
 
     return (
         <div className="text-xs text-muted-foreground space-y-2 mt-2">
@@ -76,7 +76,13 @@ const EcoScoreReasoning = ({ acceleration, currentWhPerKm }: { acceleration: num
             <div className="flex items-center gap-2">
                 {isEfficient ? <TrendingUp className="w-4 h-4 text-green-500" /> : <TrendingDown className="w-4 h-4 text-destructive" />}
                 <p>
-                    {isEfficient ? 'Energy usage is below baseline, good job!' : `Energy usage is above baseline (${Math.round(currentWhPerKm)} Wh/km).`}
+                    {isEfficient ? 'Energy usage is below baseline, good job!' : `High energy usage is lowering your score.`}
+                </p>
+            </div>
+             <div className="flex items-center gap-2">
+                {isRegenActive ? <Zap className="w-4 h-4 text-regen-green" /> : <Zap className="w-4 h-4 text-muted-foreground/30" />}
+                <p>
+                    {isRegenActive ? 'Regenerative braking is active, increasing score.' : 'Coasting or braking captures energy.'}
                 </p>
             </div>
         </div>
@@ -101,7 +107,7 @@ export default function OptimizationTab({ state, onProfileSwitchClick }: Optimiz
             <Card className="flex flex-col">
                 <CardHeader className="items-center pb-2 text-center">
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><BarChart className="w-4 h-4"/>Eco-Driving Score</CardTitle>
-                    <CardDescription className="text-xs -mt-2 px-2">Based on: Harsh Acceleration events and Energy Usage vs. baseline.</CardDescription>
+                    <CardDescription className="text-xs -mt-2 px-2">Based on: Acceleration, Energy Usage & Regen.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow w-full flex flex-col items-center justify-start p-4">
                     <div className="w-48 h-48">
@@ -111,6 +117,7 @@ export default function OptimizationTab({ state, onProfileSwitchClick }: Optimiz
                         <EcoScoreReasoning
                             acceleration={state.accelerationHistory[0] || 0}
                             currentWhPerKm={state.recentWhPerKm}
+                            power={state.power}
                         />
                     )}
                 </CardContent>
@@ -170,5 +177,3 @@ export default function OptimizationTab({ state, onProfileSwitchClick }: Optimiz
         </div>
     );
 }
-
-    
