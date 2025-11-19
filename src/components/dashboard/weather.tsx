@@ -37,7 +37,7 @@ export default function Weather({ weather, forecast }: { weather: WeatherData | 
         <CardTitle className="text-sm font-headline">Weather</CardTitle>
       </CardHeader>
       <CardContent className="flex-grow flex flex-col p-0 space-y-2 min-h-0">
-        {weather ? (
+        {weather && weather.weather && weather.weather.length > 0 ? (
           <>
             <div className="flex items-center gap-2">
               <div className="w-12 h-12">
