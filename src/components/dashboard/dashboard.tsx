@@ -12,6 +12,7 @@ import HelpModal from './help-modal';
 import ProfileModal from './profile-modal';
 import { AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import type { AiState, VehicleState } from '@/lib/types';
 
 export default function Dashboard() {
   const {
@@ -73,7 +74,7 @@ export default function Dashboard() {
           <TabsContent value="dashboard" className="h-full flex-grow min-h-0 data-[state=inactive]:hidden">
             <DashboardTab
               {...cardProps}
-              setVehicleState={setVehicleState}
+              setVehicleState={setVehicleState as React.Dispatch<React.SetStateAction<Partial<VehicleState & AiState>>>}
             />
           </TabsContent>
           <TabsContent value="analytics" className="h-full flex-grow min-h-0 data-[state=inactive]:hidden">
