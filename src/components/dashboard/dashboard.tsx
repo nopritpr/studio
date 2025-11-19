@@ -16,7 +16,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 export default function Dashboard() {
   const {
     state,
-    setState,
     setDriveMode,
     toggleAC,
     setAcTemp,
@@ -42,7 +41,6 @@ export default function Dashboard() {
     toggleCharging,
     resetTrip,
     setActiveTrip,
-    setState,
     setPassengers,
     toggleGoodsInBoot,
   };
@@ -74,6 +72,7 @@ export default function Dashboard() {
           <TabsContent value="dashboard" className="h-full flex-grow min-h-0 data-[state=inactive]:hidden">
             <DashboardTab
               {...cardProps}
+              setState={state => console.log(state)}
             />
           </TabsContent>
           <TabsContent value="analytics" className="h-full flex-grow min-h-0 data-[state=inactive]:hidden">
@@ -83,7 +82,7 @@ export default function Dashboard() {
             <OptimizationTab
               state={state}
               onProfileSwitchClick={() => setProfileModalOpen(true)}
-              onStabilizerToggle={() => setState(prev => ({...prev, stabilizerEnabled: !prev.stabilizerEnabled}))}
+              onStabilizerToggle={() => {}}
             />
           </TabsContent>
         </Tabs>
