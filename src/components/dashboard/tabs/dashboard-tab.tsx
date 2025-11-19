@@ -1,3 +1,4 @@
+
 'use client';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import Image from "next/image";
 import SpeedGauge from "../charts/speed-gauge";
 import { cn } from "@/lib/utils";
-import type { VehicleState, DriveMode, WeatherData, FiveDayForecast } from "@/lib/types";
+import type { VehicleState, DriveMode, WeatherData, FiveDayForecast, AiState } from "@/lib/types";
 import { MODE_SETTINGS } from "@/lib/constants";
 import NavigationMap from '../navigation-map';
 import Weather from '../weather';
@@ -24,7 +25,7 @@ import {
 
 interface DashboardTabProps {
   state: VehicleState;
-  setState: React.Dispatch<React.SetStateAction<Partial<VehicleState>>>;
+  setVehicleState: React.Dispatch<React.SetStateAction<Partial<VehicleState & AiState>>>;
   setDriveMode: (mode: DriveMode) => void;
   toggleAC: () => void;
   setAcTemp: (temp: number) => void;
@@ -37,7 +38,7 @@ interface DashboardTabProps {
 
 export default function DashboardTab({
   state,
-  setState,
+  setVehicleState,
   setDriveMode,
   toggleAC,
   setAcTemp,
@@ -53,7 +54,7 @@ export default function DashboardTab({
   const lng = state.weather?.coord?.lon || -122.4;
 
   const handleLocationChange = (newLat: number, newLng: number) => {
-    setState(prevState => ({
+    setVehicleState(prevState => ({
       ...prevState,
       weather: {
         ...prevState.weather,

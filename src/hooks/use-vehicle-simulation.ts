@@ -457,7 +457,7 @@ export function useVehicleSimulation() {
         ...prevState,
         weather: weatherData, 
         weatherForecast: forecastData,
-        outsideTemp: weatherData?.main.temp || 25 
+        outsideTemp: weatherData?.main.temp || prevState.outsideTemp,
       }));
 
     } catch (error) {
@@ -541,7 +541,7 @@ export function useVehicleSimulation() {
 
   return {
     state: vehicleState,
-    setState: setVehicleState,
+    setVehicleState: setVehicleState as React.Dispatch<React.SetStateAction<Partial<VehicleState & AiState>>>,
     setDriveMode,
     toggleAC,
     setAcTemp,

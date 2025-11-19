@@ -16,6 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 export default function Dashboard() {
   const {
     state,
+    setVehicleState,
     setDriveMode,
     toggleAC,
     setAcTemp,
@@ -72,7 +73,7 @@ export default function Dashboard() {
           <TabsContent value="dashboard" className="h-full flex-grow min-h-0 data-[state=inactive]:hidden">
             <DashboardTab
               {...cardProps}
-              setState={state => console.log(state)}
+              setVehicleState={setVehicleState}
             />
           </TabsContent>
           <TabsContent value="analytics" className="h-full flex-grow min-h-0 data-[state=inactive]:hidden">
