@@ -63,7 +63,7 @@ export default function Weather({ weather, forecast }: { weather: WeatherData | 
               </div>
             </div>
           </>
-        ) : <p className="text-xs text-muted-foreground">Loading current weather...</p>}
+        ) : <div className="flex-grow flex items-center justify-center"><p className="text-xs text-muted-foreground">Loading current weather...</p></div>}
         
         <div className="flex-grow space-y-1 overflow-y-auto pt-2">
              {dailyForecasts.length > 0 ? (
@@ -77,7 +77,9 @@ export default function Weather({ weather, forecast }: { weather: WeatherData | 
                     </div>
                 ))
              ) : (
-                <p className="text-xs text-muted-foreground text-center">Loading forecast...</p>
+                <div className="flex h-full items-center justify-center">
+                    <p className="text-xs text-muted-foreground text-center">Loading forecast...</p>
+                </div>
              )}
         </div>
       </CardContent>
