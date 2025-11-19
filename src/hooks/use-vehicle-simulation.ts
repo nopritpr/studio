@@ -434,12 +434,7 @@ export function useVehicleSimulation() {
       });
   }, []);
 
-  const fetchWeatherData = useCallback(async () => {
-    const state = stateRef.current;
-    const lat = state.weather?.coord?.lat;
-    const lon = state.weather?.coord?.lon;
-
-    if (!lat || !lon) return;
+  const fetchWeatherData = useCallback(async (lat: number, lon: number) => {
     try {
       const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`);
       let weatherData: WeatherData | null = null;
@@ -509,8 +504,12 @@ export function useVehicleSimulation() {
 
     const fatigueInterval = setInterval(triggerFatigueCheck, 2000);
 
-    fetchWeatherData();
-    const weatherInterval = setInterval(fetchWeatherData, 300000);
+    const weatherInterval = setInterval(() => {
+        const { lat, lon } = stateRef.current.weather?.coord || {};
+        if (lat && lon) {
+            fetchWeatherData(lat, lon);
+        }
+    }, 300000);
 
     return () => {
         clearInterval(aiInterval);
@@ -519,16 +518,29 @@ export function useVehicleSimulation() {
     };
   }, [triggerAcUsageImpact, triggerIdlePrediction, triggerFatigueCheck, fetchWeatherData]);
 
-  // Initial Geolocation
+  // Initial Geolocation and Weather Fetch
   useEffect(() => {
-    if ('geolocation' in navigator) {
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(position => {
+        const { latitude, longitude } = position.coords;
         setVehicleState(prevState => ({
             ...prevState,
-            weather: { ...prevState.weather, coord: { lat: position.coords.latitude, lon: position.coords.longitude } } as any,
+            weather: { ...prevState.weather, coord: { lat: latitude, lon: longitude } } as any,
         }));
+        fetchWeatherData(latitude, longitude);
+      }, (error) => {
+        console.error("Geolocation error:", error);
+        // Fallback to default location if user denies permission
+        const defaultLat = 37.8;
+        const defaultLon = -122.4;
+        setVehicleState(prevState => ({
+          ...prevState,
+          weather: { ...prevState.weather, coord: { lat: defaultLat, lon: defaultLon } } as any,
+        }));
+        fetchWeatherData(defaultLat, defaultLon);
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
   useEffect(() => {
@@ -555,5 +567,7 @@ export function useVehicleSimulation() {
     toggleGoodsInBoot,
   };
 }
+
+    
 
     
