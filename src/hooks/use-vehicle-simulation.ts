@@ -455,9 +455,9 @@ export function useVehicleSimulation() {
       
       setVehicleState(prevState => ({
         ...prevState,
-        weather: weatherData, 
+        weather: weatherData,
         weatherForecast: forecastData,
-        outsideTemp: weatherData?.main.temp || prevState.outsideTemp,
+        outsideTemp: weatherData?.main.temp ?? prevState.outsideTemp,
       }));
 
     } catch (error) {
@@ -555,3 +555,5 @@ export function useVehicleSimulation() {
     toggleGoodsInBoot,
   };
 }
+
+    
