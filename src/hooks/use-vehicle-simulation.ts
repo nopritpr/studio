@@ -534,11 +534,17 @@ export function useVehicleSimulation() {
         },
         (error) => {
           console.error("Geolocation error:", error);
+          // Fallback to a default location if geolocation fails
           const defaultLat = 37.8;
           const defaultLon = -122.4;
           fetchWeatherData(defaultLat, defaultLon);
         }
       );
+    } else {
+        // Fallback for environments without geolocation
+        const defaultLat = 37.8;
+        const defaultLon = -122.4;
+        fetchWeatherData(defaultLat, defaultLon);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
