@@ -7,7 +7,7 @@
  *
  * - predictIdleDrain - A function that predicts idle battery drain.
  * - PredictiveIdleDrainInput - The input type for the predictIdleDrain function.
- * - PredictiveIdleDrainOutput - The return type for the predictIdleDrain function.
+ * - PredictiveIdleDrainOutput - The return type for the predictIdledrain function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -45,27 +45,10 @@ const predictiveIdleDrainFlow = ai.defineFlow(
     outputSchema: PredictiveIdleDrainOutputSchema,
   },
   async (input) => {
-    const { currentBatterySOC, acOn, acTemp, outsideTemp } = input;
+    const { currentBatterySOC } = input;
 
-    // --- Step 1: Calculate Hourly Drain Components based on the correct formula ---
-
-    // Base_Drain = 0.8% per hour
-    const baseDrain = 0.8;
-
-    // AC_Drain = Duty_Cycle × 2.1% per hour
-    let acDrain = 0;
-    if (acOn) {
-      // Duty_Cycle = min(1.0, |T_outside - T_target| / 10.0)
-      const dutyCycle = Math.min(1.0, Math.abs(outsideTemp - acTemp) / 10.0);
-      acDrain = dutyCycle * 2.1;
-    }
-
-    // Temp_Penalty: Creates a linear penalty for temperatures above 25°C.
-    // Example: At 30°C, penalty is (30-25)*0.06 = 0.3%. At 35°C, penalty is (35-25)*0.06 = 0.6%
-    const tempPenalty = outsideTemp > 25 ? (outsideTemp - 25) * 0.06 : 0;
-
-    // Total_Hourly_Drain
-    const totalHourlyDrain = baseDrain + acDrain + tempPenalty;
+    // --- Step 1: Set the constant hourly drain to meet the 3% over 8 hours target ---
+    const totalHourlyDrain = 0.375; // 3% / 8 hours
 
     // --- Step 2: Hour-by-Hour Prediction ---
     const hourlyPrediction: { hour: number; soc: number }[] = [];
