@@ -11,6 +11,8 @@ import { analyzeDrivingStyle, type AnalyzeDrivingStyleInput } from '@/ai/flows/d
 import { monitorDriverFatigue, type DriverFatigueInput } from '@/ai/flows/driver-fatigue-monitor';
 import { getAcUsageImpact, type AcUsageImpactInput } from '@/ai/flows/ac-usage-impact-forecaster';
 import { getWeatherImpact } from '@/ai/flows/weather-impact-forecast';
+import { useFirestore } from '@/firebase';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const keys: Record<string, boolean> = {
   ArrowUp: false,
@@ -84,6 +86,8 @@ const calculateIdleDrain = (input: PredictiveIdleDrainInput): PredictiveIdleDrai
 
 export function useVehicleSimulation() {
   const [vehicleState, setVehicleState] = useState<VehicleState & AiState>({ ...initialState, ...defaultAiState});
+  const [isLoaded, setIsLoaded] = useState(false);
+  const firestore = useFirestore();
 
   const { toast } = useToast();
   
@@ -91,6 +95,40 @@ export function useVehicleSimulation() {
   useEffect(() => {
     stateRef.current = vehicleState;
   }, [vehicleState]);
+
+  // Load state from Firestore on mount
+  useEffect(() => {
+    const loadState = async () => {
+      const docRef = doc(firestore, 'vehicle_states', 'singleton');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data() as VehicleState;
+        // Restore lastUpdate as current time to avoid large time delta jumps
+        setVehicleState(prevState => ({ ...prevState, ...data, lastUpdate: Date.now() }));
+      }
+      setIsLoaded(true);
+    };
+    if (firestore) {
+      loadState();
+    }
+  }, [firestore]);
+
+  // Save state to Firestore on change
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    const debounceSave = setTimeout(() => {
+      const stateToSave = { ...stateRef.current };
+      // Don't save transient UI state or large objects that don't need persistence
+      delete (stateToSave as any).weather;
+      delete (stateToSave as any).weatherForecast;
+
+      const docRef = doc(firestore, 'vehicle_states', 'singleton');
+      setDoc(docRef, stateToSave, { merge: true });
+    }, 2000); // Debounce saves to every 2 seconds
+
+    return () => clearTimeout(debounceSave);
+  }, [vehicleState, firestore, isLoaded]);
 
   const setDriveMode = useCallback((mode: DriveMode) => {
     setVehicleState(prevState => ({ ...prevState, driveMode: mode, driveModeHistory: [mode, ...prevState.driveModeHistory].slice(0, 10) as DriveMode[] }));
@@ -518,6 +556,7 @@ export function useVehicleSimulation() {
 
   // Animation loop
   useEffect(() => {
+    if (!isLoaded) return;
     let requestRef: number;
     const tick = () => {
       setVehicleState(prevState => updateVehicleState(prevState));
@@ -525,7 +564,7 @@ export function useVehicleSimulation() {
     };
     requestRef = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(requestRef);
-  }, [updateVehicleState]);
+  }, [updateVehicleState, isLoaded]);
 
 
   // AI and external data fetching timers

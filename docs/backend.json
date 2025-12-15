@@ -156,48 +156,10 @@
         "endSOC",
         "energyAdded"
       ]
-    },
-    "UserProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserProfile",
-      "type": "object",
-      "description": "Represents a user profile with driving preferences and vehicle settings.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the user profile."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the user profile."
-        },
-        "preferredDriveMode": {
-          "type": "string",
-          "description": "The user's preferred drive mode (e.g., Eco, City, Sports)."
-        },
-        "preferredAcTemp": {
-          "type": "number",
-          "description": "The user's preferred air conditioning temperature (°C)."
-        },
-        "vehicleStateId": {
-          "type": "string",
-          "description": "Reference to VehicleState. (Relationship: UserProfile 1:1 VehicleState)"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "preferredDriveMode",
-        "preferredAcTemp",
-        "vehicleStateId"
-      ]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": []
   },
   "firestore": {
     "structure": [
@@ -232,24 +194,7 @@
             }
           ]
         }
-      },
-      {
-        "path": "/user_profiles/{userProfileId}",
-        "definition": {
-          "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores user profile information and preferences. Documents are uniquely identified by userProfileId.",
-          "params": [
-            {
-              "name": "userProfileId",
-              "description": "Unique identifier for the user profile document."
-            }
-          ]
-        }
       }
-    ],
-    "reasoning": "Given the requirement to store simulation data and load it for continued use without Firebase Authentication, I recommend a simple, flat structure that prioritizes ease of access and avoids complex authorization considerations. We will create collections for `VehicleState`, `ChargingLog`, and `UserProfile`. Since there is no user-specific access control, we do not need to denormalize any user or membership data. All data can be stored at the top level.\n\nThe structure supports QAPs by enabling simple `list` operations. Each entity type resides in its own collection, preventing the need to filter across different data types. This segregation also ensures homogeneous security posture, as each collection can be governed by a distinct set of security rules if authentication were ever re-enabled. For this situation, the structure will provide a secure, scalable, and easily debuggable Firestore structure if required."
+    ]
   }
 }
