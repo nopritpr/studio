@@ -1,11 +1,8 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
-  publicRuntimeConfig: {
-    NEXT_PUBLIC_OPENWEATHER_API_KEY: "YOUR_API_KEY_HERE",
-    NEXT_PUBLIC_MAPBOX_API_KEY: "YOUR_API_KEY_HERE",
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
