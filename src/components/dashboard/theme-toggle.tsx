@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -5,15 +6,13 @@ import { Moon, Sun } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 
 export default function ThemeToggle() {
-  // Set initial state from localStorage only on the client side
-  const [isDark, setIsDark] = React.useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') === 'dark';
-    }
-    return true; // Default to dark on server
-  });
+  const [isDark, setIsDark] = React.useState(false);
 
-  // Effect to apply the theme and update localStorage
+  React.useEffect(() => {
+    const isDarkMode = localStorage.getItem('theme') === 'dark';
+    setIsDark(isDarkMode);
+  }, []);
+
   React.useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add('dark');
@@ -22,7 +21,7 @@ export default function ThemeToggle() {
       document.documentElement.classList.remove('dark');
       localStorage.setItem('theme', 'light');
     }
-  }, [isDark]); // This effect runs only when isDark changes
+  }, [isDark]);
 
   const toggleTheme = (checked: boolean) => {
     setIsDark(checked);
