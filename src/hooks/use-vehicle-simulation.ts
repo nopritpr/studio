@@ -359,7 +359,13 @@ export function useVehicleSimulation() {
     
     const energyUsedKwh = instantPower * (timeDelta / 3600);
     const socDelta = (energyUsedKwh / prevState.packNominalCapacity_kWh) * 100;
-    newSOC -= socDelta;
+    
+    // The fix: ensure negative power (regen) adds to SOC
+    if (instantPower < 0) {
+      newSOC += Math.abs(socDelta);
+    } else {
+      newSOC -= socDelta;
+    }
 
     newSOC = Math.max(0, Math.min(100, newSOC));
     
