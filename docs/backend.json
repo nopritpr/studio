@@ -1,0 +1,255 @@
+{
+  "entities": {
+    "VehicleState": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "VehicleState",
+      "type": "object",
+      "description": "Represents the overall state of the EV, including telemetry, environment, and settings.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the vehicle state."
+        },
+        "odometer": {
+          "type": "number",
+          "description": "The total distance the vehicle has traveled (km)."
+        },
+        "tripA": {
+          "type": "number",
+          "description": "Distance traveled on trip A (km)."
+        },
+        "tripB": {
+          "type": "number",
+          "description": "Distance traveled on trip B (km)."
+        },
+        "activeTrip": {
+          "type": "string",
+          "description": "Indicates which trip (A or B) is currently active."
+        },
+        "batterySOC": {
+          "type": "number",
+          "description": "The current state of charge of the battery (%)."
+        },
+        "driveMode": {
+          "type": "string",
+          "description": "The current drive mode (e.g., Eco, City, Sports)."
+        },
+        "acOn": {
+          "type": "boolean",
+          "description": "Indicates whether the air conditioning is on."
+        },
+        "acTemp": {
+          "type": "number",
+          "description": "The target temperature for the air conditioning (°C)."
+        },
+        "speed": {
+          "type": "number",
+          "description": "The vehicle's current speed (km/h)."
+        },
+        "power": {
+          "type": "number",
+          "description": "The vehicle's current power consumption (kW)."
+        },
+        "efficiency": {
+          "type": "number",
+          "description": "The vehicle's current energy efficiency (Wh/km)."
+        },
+        "ecoScore": {
+          "type": "number",
+          "description": "A score representing the eco-friendliness of the driving style."
+        },
+        "batteryCapacity_kWh": {
+          "type": "number",
+          "description": "The total capacity of the vehicles battery"
+        },
+        "predictedDynamicRange": {
+          "type": "number",
+          "description": "The predicted range of the vehicle based on machine learning predictions"
+        },
+        "energyThroughput_kWh": {
+          "type": "number",
+          "description": "The lifetime energy throughput (kWh) of the battery."
+        },
+        "cycleCount": {
+          "type": "number",
+          "description": "The number of equivalent full charge cycles the battery has undergone."
+        },
+        "isCharging": {
+          "type": "boolean",
+          "description": "Indicates whether the vehicle is currently charging."
+        },
+        "rawPredictedRange": {
+          "type": "number",
+          "description": "The model's raw prediction for the vehicle range"
+        },
+        "batteryTemp": {
+          "type": "number",
+          "description": "The temperature of the battery"
+        }
+      },
+      "required": [
+        "id",
+        "odometer",
+        "tripA",
+        "tripB",
+        "activeTrip",
+        "batterySOC",
+        "driveMode",
+        "acOn",
+        "acTemp",
+        "speed",
+        "power",
+        "efficiency",
+        "ecoScore",
+        "batteryCapacity_kWh",
+        "predictedDynamicRange",
+        "energyThroughput_kWh",
+        "cycleCount",
+        "isCharging",
+        "rawPredictedRange",
+        "batteryTemp"
+      ]
+    },
+    "ChargingLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ChargingLog",
+      "type": "object",
+      "description": "Represents a single charging session for the EV.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the charging log entry."
+        },
+        "vehicleStateId": {
+          "type": "string",
+          "description": "Reference to VehicleState. (Relationship: VehicleState 1:N ChargingLog)"
+        },
+        "startTime": {
+          "type": "string",
+          "description": "The start time of the charging session (ISO 8601 format).",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "description": "The end time of the charging session (ISO 8601 format).",
+          "format": "date-time"
+        },
+        "startSOC": {
+          "type": "number",
+          "description": "The state of charge of the battery at the start of the session (%)."
+        },
+        "endSOC": {
+          "type": "number",
+          "description": "The state of charge of the battery at the end of the session (%)."
+        },
+        "energyAdded": {
+          "type": "number",
+          "description": "The amount of energy added to the battery during the session (kWh)."
+        }
+      },
+      "required": [
+        "id",
+        "vehicleStateId",
+        "startTime",
+        "endTime",
+        "startSOC",
+        "endSOC",
+        "energyAdded"
+      ]
+    },
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user profile with driving preferences and vehicle settings.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user profile."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the user profile."
+        },
+        "preferredDriveMode": {
+          "type": "string",
+          "description": "The user's preferred drive mode (e.g., Eco, City, Sports)."
+        },
+        "preferredAcTemp": {
+          "type": "number",
+          "description": "The user's preferred air conditioning temperature (°C)."
+        },
+        "vehicleStateId": {
+          "type": "string",
+          "description": "Reference to VehicleState. (Relationship: UserProfile 1:1 VehicleState)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "preferredDriveMode",
+        "preferredAcTemp",
+        "vehicleStateId"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/vehicle_states/{vehicleStateId}",
+        "definition": {
+          "entityName": "VehicleState",
+          "schema": {
+            "$ref": "#/backend/entities/VehicleState"
+          },
+          "description": "Stores the real-time and historical states of the EV. Documents are uniquely identified by vehicleStateId.",
+          "params": [
+            {
+              "name": "vehicleStateId",
+              "description": "Unique identifier for the vehicle state document."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/charging_logs/{chargingLogId}",
+        "definition": {
+          "entityName": "ChargingLog",
+          "schema": {
+            "$ref": "#/backend/entities/ChargingLog"
+          },
+          "description": "Stores individual charging session logs. Documents are uniquely identified by chargingLogId.",
+          "params": [
+            {
+              "name": "chargingLogId",
+              "description": "Unique identifier for the charging log document."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/user_profiles/{userProfileId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile information and preferences. Documents are uniquely identified by userProfileId.",
+          "params": [
+            {
+              "name": "userProfileId",
+              "description": "Unique identifier for the user profile document."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "Given the requirement to store simulation data and load it for continued use without Firebase Authentication, I recommend a simple, flat structure that prioritizes ease of access and avoids complex authorization considerations. We will create collections for `VehicleState`, `ChargingLog`, and `UserProfile`. Since there is no user-specific access control, we do not need to denormalize any user or membership data. All data can be stored at the top level.\n\nThe structure supports QAPs by enabling simple `list` operations. Each entity type resides in its own collection, preventing the need to filter across different data types. This segregation also ensures homogeneous security posture, as each collection can be governed by a distinct set of security rules if authentication were ever re-enabled. For this situation, the structure will provide a secure, scalable, and easily debuggable Firestore structure if required."
+  }
+}

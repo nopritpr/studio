@@ -1,0 +1,93 @@
+/**
+ * Core Philosophy:
+ * This ruleset is designed for a simulation application where the data is considered
+ * public for reading but should not be modifiable by clients. It enforces a strict
+ * read-only security model from the client-side. The core assumption is that a
+ * trusted backend process (e.g., a server running the simulation or a Cloud
+ * Function) will be responsible for writing and managing all data using the Firebase
+ * Admin SDK, which bypasses these security rules.
+ *
+ * Data Structure:
+ * The data is organized into a flat structure with three top-level collections:
+ * - /vehicle_states: Stores the state of each simulated vehicle.
+ * - /charging_logs: Contains records of charging sessions.
+ * - /user_profiles: Stores simulated user profiles and preferences.
+ * This structure avoids user-specific nesting, reflecting the absence of client-side
+ * authentication and authorization.
+ *
+ * Key Security Decisions:
+ * - Public Read Access: All data in all collections is publicly readable by any client.
+ *   This allows the application to easily load and display simulation data.
+ * - Client Writes Disabled: All write operations (create, update, delete) from
+ *   any client are explicitly denied. This is a critical security measure to protect
+ *   the integrity of the simulation data from unauthorized or accidental modification
+ *   from the internet.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description
+     *   Allows anyone to read vehicle state documents but denies all write operations.
+     *   This protects the simulation's core data from being modified by clients.
+     * @path
+     *   /vehicle_states/{vehicleStateId}
+     * @allow
+     *   (get) Any client, authenticated or not, can fetch a specific vehicle state document.
+     * @deny
+     *   (create) A client attempts to create a new vehicle state document.
+     * @principle
+     *   Enforces a public read-only model, ensuring data is populated by a trusted backend.
+     */
+    match /vehicle_states/{vehicleStateId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description
+     *   Allows anyone to read charging log documents but denies all write operations.
+     *   This ensures the history of charging sessions remains tamper-proof from the client.
+     * @path
+     *   /charging_logs/{chargingLogId}
+     * @allow
+     *   (list) Any client can list all charging log documents.
+     * @deny
+     *   (update) A client attempts to modify an existing charging log.
+     * @principle
+     *   Enforces a public read-only model, ensuring data is populated by a trusted backend.
+     */
+    match /charging_logs/{chargingLogId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description
+     *   Allows anyone to read user profile documents but denies all write operations.
+     *   This protects the simulated user data from being altered by clients.
+     * @path
+     *   /user_profiles/{userProfileId}
+     * @allow
+     *   (get) Any client can fetch a specific user profile.
+     * @deny
+     *   (delete) A client attempts to delete a user profile document.
+     * @principle
+     *   Enforces a public read-only model, ensuring data is populated by a trusted backend.
+     */
+    match /user_profiles/{userProfileId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
