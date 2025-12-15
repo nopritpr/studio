@@ -11,6 +11,10 @@ import { analyzeDrivingStyle, type AnalyzeDrivingStyleInput } from '@/ai/flows/d
 import { monitorDriverFatigue, type DriverFatigueInput } from '@/ai/flows/driver-fatigue-monitor';
 import { getAcUsageImpact, type AcUsageImpactInput } from '@/ai/flows/ac-usage-impact-forecaster';
 import { getWeatherImpact } from '@/ai/flows/weather-impact-forecast';
+import getConfig from 'next/config';
+
+const { publicRuntimeConfig } = getConfig();
+const openWeatherApiKey = publicRuntimeConfig.NEXT_PUBLIC_OPENWEATHER_API_KEY;
 
 const keys: Record<string, boolean> = {
   ArrowUp: false,
@@ -461,7 +465,7 @@ export function useVehicleSimulation() {
   }, []);
 
   const fetchWeatherData = useCallback(async (lat: number, lon: number) => {
-    const apiKey = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
+    const apiKey = openWeatherApiKey;
     if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
       console.warn("OpenWeatherMap API key is missing. Weather data will not be fetched.");
       return;
