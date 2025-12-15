@@ -18,9 +18,11 @@ export async function getWeatherImpact(input: GetWeatherImpactInput): Promise<im
 
 const weatherImpactPrompt = ai.definePrompt({
   name: 'weatherImpactPrompt',
-  model: 'googleai/gemini-1.5-flash',
   input: {schema: GetWeatherImpactInputSchema},
   output: {schema: GetWeatherImpactOutputSchema},
+  config: {
+    model: 'gemini-pro',
+  },
   prompt: `You are an expert Electric Vehicle energy consumption model. Your task is to predict the daily range penalty in kilometers for the next 5 days based on the provided weather forecast.
 
 The vehicle has an ideal range of {{initialRange}} km.
