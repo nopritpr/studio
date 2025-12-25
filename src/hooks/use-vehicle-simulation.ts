@@ -246,10 +246,8 @@ export function useVehicleSimulation() {
 
   const setActiveTrip = useCallback((trip: 'A' | 'B') => setVehicleState(prevState => ({...prevState, activeTrip: trip})), []);
 
-  const calculateDynamicRange = useCallback((state: VehicleState) => {
+  const calculateDynamicRange = useCallback((state: VehicleState & AiState) => {
     const { batterySOC, driveMode } = state;
-    const modeMultiplier = MODE_SETTINGS[driveMode].rangeMultiplier;
-    const range = state.initialRange * (batterySOC / 100) * modeMultiplier;
     
     // The other penalties are not used for the main range display anymore,
     // but we can calculate them for the analytics chart.
@@ -275,7 +273,7 @@ export function useVehicleSimulation() {
         tempPenalty = (outsideTemp - 25) * 0.007 * baseRangeForPenalties;
     }
     
-    // Drive mode penalty is now baked into the main range, but we can show what the *additional* penalty is vs. Eco
+    const modeMultiplier = MODE_SETTINGS[driveMode].rangeMultiplier;
     const driveModePenalty = (1 - modeMultiplier) * baseRangeForPenalties;
 
     const finalPenalties = {
@@ -286,8 +284,10 @@ export function useVehicleSimulation() {
     };
     
     const predictedDynamicRange = baseRangeForPenalties - acPenalty - loadPenalty - tempPenalty - driveModePenalty;
+    
+    const smoothedRange = state.range * 0.9 + predictedDynamicRange * 0.1;
 
-    return { range, predictedDynamicRange, rangePenalties: finalPenalties };
+    return { range: smoothedRange, predictedDynamicRange, rangePenalties: finalPenalties };
   }, []);
 
   const updateVehicleState = useCallback((prevState: VehicleState & AiState): VehicleState & AiState => {
@@ -299,11 +299,13 @@ export function useVehicleSimulation() {
         const chargePerSecond = 1 / 5; // 1% SOC every 5 seconds
         newSOC += chargePerSecond * timeDelta;
         newSOC = Math.min(100, newSOC);
-        const { range } = calculateDynamicRange({ ...prevState, batterySOC: newSOC });
+        const rangeUpdates = calculateDynamicRange({ ...prevState, batterySOC: newSOC });
         return {
             ...prevState,
             batterySOC: newSOC,
-            range: range,
+            range: rangeUpdates.predictedDynamicRange,
+            predictedDynamicRange: rangeUpdates.predictedDynamicRange,
+            rangePenalties: rangeUpdates.rangePenalties,
             lastUpdate: now,
         };
     }
@@ -372,7 +374,12 @@ export function useVehicleSimulation() {
     const energyUsedKwh = smoothedPower * (timeDelta / 3600);
     const socDelta = (energyUsedKwh / prevState.packNominalCapacity_kWh) * 100;
     
-    newSOC -= socDelta;
+    if (socDelta > 0) {
+      newSOC -= socDelta;
+    } else {
+      newSOC -= socDelta; // Subtracting a negative is adding
+    }
+    
     newSOC = Math.max(0, Math.min(100, newSOC));
     
     const newOdometer = prevState.odometer + distanceTraveledKm;
@@ -411,7 +418,9 @@ export function useVehicleSimulation() {
       equivalentFullCycles: prevState.equivalentFullCycles + Math.abs((prevState.batterySOC - newSOC) / 100),
       speedHistory: [newSpeedKmh, ...prevState.speedHistory].slice(0, 10),
       accelerationHistory: [currentAcceleration, ...prevState.accelerationHistory].slice(0, 10),
-      ...rangeUpdates
+      range: rangeUpdates.predictedDynamicRange,
+      predictedDynamicRange: rangeUpdates.predictedDynamicRange,
+      rangePenalties: rangeUpdates.rangePenalties,
     };
     
     if (newOdometer > (prevState.sohHistory[prevState.sohHistory.length - 1]?.odometer || 0) + 500) {
