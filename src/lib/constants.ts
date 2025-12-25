@@ -126,6 +126,7 @@ export const MODE_SETTINGS: Record<
     brakeRate: number; // m/s^2
     strongRegenBrakeRate: number; // m/s^2
     rangeMultiplier: number;
+    powerMultiplier: number; // New property for stable power model
   }
 > = {
   Eco: {
@@ -134,6 +135,7 @@ export const MODE_SETTINGS: Record<
     brakeRate: 4.0,
     strongRegenBrakeRate: 5.0,
     rangeMultiplier: 1.0,
+    powerMultiplier: 1.0,
   },
   City: {
     maxSpeed: 75,
@@ -141,6 +143,7 @@ export const MODE_SETTINGS: Record<
     brakeRate: 5.0,
     strongRegenBrakeRate: 6.0,
     rangeMultiplier: 0.9,
+    powerMultiplier: 1.2,
   },
   Sports: {
     maxSpeed: 120,
@@ -148,7 +151,6 @@ export const MODE_SETTINGS: Record<
     brakeRate: 6.0,
     strongRegenBrakeRate: 7.0,
     rangeMultiplier: 0.8,
+    powerMultiplier: 1.5,
   },
 };
-
-    

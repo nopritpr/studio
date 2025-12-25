@@ -267,25 +267,6 @@ export function useVehicleSimulation() {
         };
     }
     
-    let newSOC = prevState.batterySOC;
-    const isActuallyIdle = prevState.speed === 0 && !prevState.isCharging;
-
-    if (isActuallyIdle) {
-      const basePhantomDrainPerHour = 0.25; 
-      let totalDrainPerHour = basePhantomDrainPerHour;
-
-      if (prevState.acOn) {
-        const tempDiff = Math.abs(prevState.outsideTemp - prevState.acTemp);
-        const dutyCycle = Math.min(1, tempDiff / 10);
-        const acPowerDrain_kW = EV_CONSTANTS.acPower_kW * dutyCycle;
-        const acSocDrainPerHour = (acPowerDrain_kW / prevState.packNominalCapacity_kWh) * 100;
-        totalDrainPerHour += acSocDrainPerHour;
-      }
-
-      const totalDrainPerSecond = totalDrainPerHour / 3600;
-      newSOC -= totalDrainPerSecond * timeDelta;
-    }
-
     const modeSettings = MODE_SETTINGS[prevState.driveMode];
     
     let currentAcceleration = prevState.physics.acceleration;
@@ -301,7 +282,6 @@ export function useVehicleSimulation() {
       targetAcceleration = -EV_CONSTANTS.gentleRegenBrakeRate;
     }
 
-
     currentAcceleration += (targetAcceleration - currentAcceleration) * prevState.physics.inertiaFactor;
     
     let newSpeedKmh = prevState.speed + currentAcceleration * timeDelta * 3.6;
@@ -310,44 +290,33 @@ export function useVehicleSimulation() {
     if (newSpeedKmh > modeSettings.maxSpeed && currentAcceleration > 0) {
       if (prevState.speed <= modeSettings.maxSpeed) newSpeedKmh = modeSettings.maxSpeed;
     }
-    const speedMs = newSpeedKmh / 3.6;
 
     const distanceTraveledKm = newSpeedKmh * (timeDelta / 3600);
+
+    // New Stable Power Model
+    let powerKw: number;
+    // Base consumption in kW at a reference speed (e.g., 80 km/h)
+    const basePowerAtRefSpeed = (EV_CONSTANTS.baseConsumption * 80) / 1000;
     
-    let instantPower: number;
-    if (newSpeedKmh < 1.0) {
-      // At very low speeds, use a simple, stable power model to prevent instability and division by zero.
-      // This represents a baseline power draw for starting the vehicle from a stop.
-      instantPower = currentAcceleration > 0 ? 3.0 : 0.5; 
-    } else {
-      const fAero = EV_CONSTANTS.dragCoeff * EV_CONSTANTS.frontalArea_m2 * EV_CONSTANTS.airDensity * Math.pow(speedMs, 2) * 0.5;
-      const fRoll = EV_CONSTANTS.rollingResistanceCoeff * EV_CONSTANTS.mass_kg * EV_CONSTANTS.gravity;
-      const fInertia = EV_CONSTANTS.mass_kg * currentAcceleration;
-
-      const totalTractiveForce = fAero + fRoll + fInertia;
-      instantPower = (totalTractiveForce * speedMs) / 1000;
-
-      if (instantPower > 0) {
-        instantPower /= EV_CONSTANTS.drivetrainEfficiency;
-      } else {
-        instantPower *= EV_CONSTANTS.regenEfficiency;
-      }
+    if (currentAcceleration > 0 && newSpeedKmh > 0) { // Accelerating
+        powerKw = basePowerAtRefSpeed * (1 + currentAcceleration / modeSettings.accelRate) * modeSettings.powerMultiplier;
+    } else if (currentAcceleration < 0 && newSpeedKmh > 0) { // Braking/Regen
+        powerKw = currentAcceleration * EV_CONSTANTS.regenEfficiency * -2;
+    } else { // Coasting or idle
+        powerKw = 0.5; // Small idle power draw
     }
-    
+
     if (prevState.acOn) {
-        instantPower += EV_CONSTANTS.acPower_kW * (Math.min(1, Math.abs(prevState.acTemp - prevState.outsideTemp) / 10));
+        powerKw += EV_CONSTANTS.acPower_kW * (Math.min(1, Math.abs(prevState.acTemp - prevState.outsideTemp) / 10));
     }
     
-    const newPowerHistory = [instantPower, ...prevState.powerHistory].slice(0, 10);
+    const newPowerHistory = [powerKw, ...prevState.powerHistory].slice(0, 10);
     const smoothedPower = newPowerHistory.reduce((a, b) => a + b) / newPowerHistory.length;
 
     const energyUsedKwh = smoothedPower * (timeDelta / 3600);
     const socDelta = (energyUsedKwh / prevState.packNominalCapacity_kWh) * 100;
     
-    if (!isActuallyIdle) {
-      newSOC -= socDelta;
-    }
-    
+    let newSOC = prevState.batterySOC - socDelta;
     newSOC = Math.max(0, Math.min(100, newSOC));
     
     const newOdometer = prevState.odometer + distanceTraveledKm;
@@ -370,7 +339,7 @@ export function useVehicleSimulation() {
       newEcoScore = prevState.ecoScore * 0.99 + Math.max(0, Math.min(100, currentScore)) * 0.01;
     }
     
-    const baseIdealRange = prevState.initialRange * MODE_SETTINGS[prevState.driveMode].rangeMultiplier * (newSOC / 100);
+    const baseIdealRange = prevState.initialRange * (newSOC / 100);
 
     const driveModePenalty = (prevState.initialRange * (newSOC / 100)) * (1 - MODE_SETTINGS[prevState.driveMode].rangeMultiplier);
 
@@ -663,6 +632,3 @@ export function useVehicleSimulation() {
     toggleCabinOverheatProtection,
   };
 }
-
-    
-    
