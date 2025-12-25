@@ -9,7 +9,6 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart';
 import type { VehicleState } from '@/lib/types';
-import { EV_CONSTANTS, MODE_SETTINGS } from '@/lib/constants';
 
 interface DynamicRangeChartProps {
   state: VehicleState;
@@ -18,39 +17,13 @@ interface DynamicRangeChartProps {
 export default function DynamicRangeChart({ state }: DynamicRangeChartProps) {
     const idealRange = state.initialRange * (state.batterySOC / 100);
     
-    // Simplified penalty calculation for chart display purposes. Does not affect core simulation.
-    const modeMultiplier = MODE_SETTINGS[state.driveMode].rangeMultiplier;
-    const driveModePenalty = (state.initialRange * (state.batterySOC / 100)) * (1 - modeMultiplier);
-
-    let acPenalty = 0;
-    if (state.acOn) {
-        const acPowerDraw = EV_CONSTANTS.acPower_kW * (Math.min(1, Math.abs(state.acTemp - state.outsideTemp) / 10));
-        const whPerKm = EV_CONSTANTS.baseConsumption;
-        const acWhPerKm = (acPowerDraw * 1000) / (state.speed > 0 ? state.speed : 50);
-        acPenalty = (acWhPerKm / whPerKm) * (state.initialRange * (state.batterySOC / 100)) * 0.1; // Reduced impact for viz
-    }
-
-    let tempPenalty = 0;
-    const outsideTemp = state.outsideTemp || 22;
-    if (outsideTemp < 10) {
-        tempPenalty = (10 - outsideTemp) * 0.01 * idealRange;
-    } else if (outsideTemp > 25) {
-        tempPenalty = (outsideTemp - 25) * 0.007 * idealRange;
-    }
-    
-    const passengerPenalty = (state.passengers - 1) * 0.015 * idealRange;
-    const goodsPenalty = state.goodsInBoot ? 0.03 * idealRange : 0;
-    const loadPenalty = passengerPenalty + goodsPenalty;
-
-    const predictedRange = Math.max(0, idealRange - acPenalty - loadPenalty - tempPenalty - driveModePenalty);
-    
     const data = [
         { name: 'Ideal', value: idealRange, label: `${Math.round(idealRange)} km` },
-        { name: 'A/C', value: -acPenalty, label: `-${Math.round(acPenalty)} km` },
-        { name: 'Temp', value: -tempPenalty, label: `-${Math.round(tempPenalty)} km` },
-        { name: 'Drive Mode', value: -driveModePenalty, label: `-${Math.round(driveModePenalty)} km` },
-        { name: 'Load', value: -loadPenalty, label: `-${Math.round(loadPenalty)} km` },
-        { name: 'Predicted', value: predictedRange, label: `${Math.round(predictedRange)} km` },
+        { name: 'A/C', value: -state.rangePenalties.ac, label: `-${Math.round(state.rangePenalties.ac)} km` },
+        { name: 'Temp', value: -state.rangePenalties.temp, label: `-${Math.round(state.rangePenalties.temp)} km` },
+        { name: 'Drive Mode', value: -state.rangePenalties.driveMode, label: `-${Math.round(state.rangePenalties.driveMode)} km` },
+        { name: 'Load', value: -state.rangePenalties.load, label: `-${Math.round(state.rangePenalties.load)} km` },
+        { name: 'Predicted', value: state.predictedDynamicRange, label: `${Math.round(state.predictedDynamicRange)} km` },
     ];
     
     const chartData = data.map(item => ({
