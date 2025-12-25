@@ -293,19 +293,17 @@ export function useVehicleSimulation() {
 
     const distanceTraveledKm = newSpeedKmh * (timeDelta / 3600);
 
-    // New Stable Power Model
     let powerKw: number;
-    // Base consumption in kW at a reference speed (e.g., 80 km/h)
     const basePowerAtRefSpeed = (EV_CONSTANTS.baseConsumption * 80) / 1000;
     
     if (currentAcceleration > 0 && newSpeedKmh > 0) { // Accelerating
         powerKw = basePowerAtRefSpeed * (1 + currentAcceleration / modeSettings.accelRate) * modeSettings.powerMultiplier;
     } else if (currentAcceleration < 0 && newSpeedKmh > 0) { // Braking/Regen
-        powerKw = currentAcceleration * EV_CONSTANTS.regenEfficiency * -2;
+        powerKw = currentAcceleration * EV_CONSTANTS.regenEfficiency * 2;
     } else { // Coasting or idle
         powerKw = 0.5; // Small idle power draw
     }
-
+    
     if (prevState.acOn) {
         powerKw += EV_CONSTANTS.acPower_kW * (Math.min(1, Math.abs(prevState.acTemp - prevState.outsideTemp) / 10));
     }
@@ -321,34 +319,14 @@ export function useVehicleSimulation() {
     
     const newOdometer = prevState.odometer + distanceTraveledKm;
     
-    let currentWhPerKm = 0;
-    if (newSpeedKmh > 1 && isFinite(smoothedPower) && smoothedPower > 0) {
-      currentWhPerKm = (smoothedPower * 1000) / newSpeedKmh;
-    }
-
-    const newRecentWhPerKmWindow = [currentWhPerKm > 0 ? currentWhPerKm : EV_CONSTANTS.baseConsumption, ...prevState.recentWhPerKmWindow].slice(0, 50);
-    const recentWhPerKm = newRecentWhPerKmWindow.reduce((a, b) => a + b) / newRecentWhPerKmWindow.length;
-    
-    let newEcoScore = prevState.ecoScore;
-    if (newSpeedKmh > 1 && !prevState.isCharging) {
-      const accelPenalty = Math.max(0, currentAcceleration - 1.5) * 2.0;
-      const deviation = currentWhPerKm > 0 ? currentWhPerKm - EV_CONSTANTS.baseConsumption : 0;
-      const efficiencyPenalty = Math.max(0, deviation / EV_CONSTANTS.baseConsumption) * 25;
-      const regenBonus = smoothedPower < 0 ? Math.abs(smoothedPower / 50) : 0;
-      const currentScore = 100 - accelPenalty - efficiencyPenalty + regenBonus;
-      newEcoScore = prevState.ecoScore * 0.99 + Math.max(0, Math.min(100, currentScore)) * 0.01;
-    }
-    
     const baseIdealRange = prevState.initialRange * (newSOC / 100);
-
-    const driveModePenalty = (prevState.initialRange * (newSOC / 100)) * (1 - MODE_SETTINGS[prevState.driveMode].rangeMultiplier);
+    const driveModeMultiplier = MODE_SETTINGS[prevState.driveMode].rangeMultiplier;
+    
+    const driveModePenalty = (prevState.initialRange * (newSOC/100)) * (1 - driveModeMultiplier);
 
     let acPenalty = 0;
     if (prevState.acOn) {
-      const acPowerDraw = EV_CONSTANTS.acPower_kW * (Math.min(1, Math.abs(prevState.acTemp - prevState.outsideTemp) / 10));
-      const acWhPerKm = (acPowerDraw * 1000) / (newSpeedKmh > 1 ? newSpeedKmh : 50); // Avoid division by zero
-      const efficiencyWhPerKm = recentWhPerKm > 1 ? recentWhPerKm : EV_CONSTANTS.baseConsumption;
-      acPenalty = (acWhPerKm / efficiencyWhPerKm) * baseIdealRange * 0.1;
+      acPenalty = baseIdealRange * 0.1; 
     }
 
     let tempPenalty = 0;
@@ -363,7 +341,7 @@ export function useVehicleSimulation() {
     const goodsPenalty = prevState.goodsInBoot ? 0.03 * baseIdealRange : 0;
     const loadPenalty = passengerPenalty + goodsPenalty;
 
-    const predictedRange = Math.max(0, baseIdealRange - acPenalty - loadPenalty - tempPenalty);
+    const predictedRange = Math.max(0, (baseIdealRange * driveModeMultiplier) - acPenalty - loadPenalty - tempPenalty);
     
     const newVehicleState: Partial<VehicleState & AiState> = {
       speed: newSpeedKmh,
@@ -372,11 +350,9 @@ export function useVehicleSimulation() {
       tripB: prevState.activeTrip === 'B' ? prevState.tripB + distanceTraveledKm : prevState.tripB,
       power: smoothedPower,
       batterySOC: newSOC,
-      recentWhPerKm: recentWhPerKm,
       lastUpdate: now,
       displaySpeed: prevState.displaySpeed + (newSpeedKmh - prevState.displaySpeed) * 0.1,
       powerHistory: newPowerHistory,
-      ecoScore: newEcoScore,
       packSOH: Math.max(70, prevState.packSOH - Math.abs((prevState.batterySOC - newSOC) * 0.000001)),
       equivalentFullCycles: prevState.equivalentFullCycles + Math.abs((prevState.batterySOC - newSOC) / 100),
       speedHistory: [newSpeedKmh, ...prevState.speedHistory].slice(0, 10),
@@ -394,6 +370,26 @@ export function useVehicleSimulation() {
         acceleration: currentAcceleration
       }
     };
+    
+    let currentWhPerKm = prevState.recentWhPerKm;
+    if (newSpeedKmh > 1 && isFinite(smoothedPower) && smoothedPower > 0) {
+      currentWhPerKm = (smoothedPower * 1000) / newSpeedKmh;
+    }
+
+    const newRecentWhPerKmWindow = [currentWhPerKm, ...prevState.recentWhPerKmWindow].slice(0, 50);
+    newVehicleState.recentWhPerKmWindow = newRecentWhPerKmWindow;
+    newVehicleState.recentWhPerKm = newRecentWhPerKmWindow.reduce((a,b) => a+b, 0) / newRecentWhPerKmWindow.length;
+    
+    let newEcoScore = prevState.ecoScore;
+    if (newSpeedKmh > 1 && !prevState.isCharging) {
+      const accelPenalty = Math.max(0, currentAcceleration - 1.5) * 2.0;
+      const deviation = newVehicleState.recentWhPerKm > 0 ? newVehicleState.recentWhPerKm - EV_CONSTANTS.baseConsumption : 0;
+      const efficiencyPenalty = Math.max(0, deviation / EV_CONSTANTS.baseConsumption) * 25;
+      const regenBonus = smoothedPower < 0 ? Math.abs(smoothedPower / 50) : 0;
+      const currentScore = 100 - accelPenalty - efficiencyPenalty + regenBonus;
+      newEcoScore = prevState.ecoScore * 0.99 + Math.max(0, Math.min(100, currentScore)) * 0.01;
+    }
+    newVehicleState.ecoScore = newEcoScore;
     
     if (newOdometer > (prevState.sohHistory[prevState.sohHistory.length - 1]?.odometer || 0) + 500) {
         const newSohEntry: SohHistoryEntry = {
