@@ -118,6 +118,7 @@ export const MODE_SETTINGS: Record<
     accelRate: number; // m/s^2
     brakeRate: number; // m/s^2
     strongRegenBrakeRate: number; // m/s^2
+    rangeMultiplier: number;
   }
 > = {
   Eco: {
@@ -125,18 +126,21 @@ export const MODE_SETTINGS: Record<
     accelRate: 1.2,
     brakeRate: 4.0,
     strongRegenBrakeRate: 5.0,
+    rangeMultiplier: 1.0,
   },
   City: {
     maxSpeed: 75,
     accelRate: 2.0,
     brakeRate: 5.0,
     strongRegenBrakeRate: 6.0,
+    rangeMultiplier: 0.9,
   },
   Sports: {
     maxSpeed: 120,
     accelRate: 3.5,
     brakeRate: 6.0,
     strongRegenBrakeRate: 7.0,
+    rangeMultiplier: 0.8,
   },
 };
 
