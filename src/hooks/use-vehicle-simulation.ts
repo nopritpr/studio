@@ -99,23 +99,27 @@ export function useVehicleSimulation() {
   // Load state from Firestore on mount
   useEffect(() => {
     const loadState = async () => {
+      if (!firestore) return;
       const docRef = doc(firestore, 'vehicle_states', 'singleton');
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data() as VehicleState;
-        // Restore lastUpdate as current time to avoid large time delta jumps
-        setVehicleState(prevState => ({ ...prevState, ...data, lastUpdate: Date.now() }));
+      try {
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data() as VehicleState;
+          // Restore lastUpdate as current time to avoid large time delta jumps
+          setVehicleState(prevState => ({ ...prevState, ...data, lastUpdate: Date.now() }));
+        }
+      } catch (error) {
+        console.error("Error loading state from Firestore:", error);
       }
       setIsLoaded(true);
     };
-    if (firestore) {
-      loadState();
-    }
+    
+    loadState();
   }, [firestore]);
 
   // Save state to Firestore on change
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || !firestore) return;
 
     const debounceSave = setTimeout(() => {
       const stateToSave = { ...stateRef.current };
@@ -124,7 +128,9 @@ export function useVehicleSimulation() {
       delete (stateToSave as any).weatherForecast;
 
       const docRef = doc(firestore, 'vehicle_states', 'singleton');
-      setDoc(docRef, stateToSave, { merge: true });
+      setDoc(docRef, stateToSave, { merge: true }).catch(error => {
+        console.error("Error saving state to Firestore:", error);
+      });
     }, 2000); // Debounce saves to every 2 seconds
 
     return () => clearTimeout(debounceSave);
@@ -241,16 +247,16 @@ export function useVehicleSimulation() {
   const setActiveTrip = useCallback((trip: 'A' | 'B') => setVehicleState(prevState => ({...prevState, activeTrip: trip})), []);
 
   const calculateDynamicRange = useCallback((state: VehicleState, aiState: AiState) => {
-    const idealRange = state.initialRange * (state.batterySOC / 100);
+    const baseRange = state.initialRange * (state.batterySOC / 100);
 
     let penaltyPercentage = { ac: 0, load: 0, temp: 0, driveMode: 0 };
     
     if (aiState.acUsageImpact && state.acOn) {
         const acImpactKmPerHour = Math.abs(aiState.acUsageImpact.rangeImpactKm);
-        const estimatedDriveHours = state.speed > 0 ? (idealRange / state.speed) : 4;
-        const totalAcPenaltyKm = Math.min(acImpactKmPerHour * estimatedDriveHours, idealRange * 0.2); // Cap penalty
-        if (idealRange > 0) {
-            penaltyPercentage.ac = totalAcPenaltyKm / idealRange;
+        const estimatedDriveHours = state.speed > 0 ? (baseRange / state.speed) : 4;
+        const totalAcPenaltyKm = Math.min(acImpactKmPerHour * estimatedDriveHours, baseRange * 0.2); // Cap penalty
+        if (baseRange > 0) {
+            penaltyPercentage.ac = totalAcPenaltyKm / baseRange;
         }
     }
 
@@ -269,19 +275,16 @@ export function useVehicleSimulation() {
     else if (state.driveMode === 'Sports') penaltyPercentage.driveMode = 0.18;
 
     const totalPenaltyPercentage = penaltyPercentage.ac + penaltyPercentage.load + penaltyPercentage.temp + penaltyPercentage.driveMode;
-    const predictedRange = idealRange * (1 - totalPenaltyPercentage);
+    const predictedRange = baseRange * (1 - totalPenaltyPercentage);
     
     const finalPenalties = {
-      ac: idealRange * penaltyPercentage.ac,
-      load: idealRange * penaltyPercentage.load,
-      temp: idealRange * penaltyPercentage.temp,
-      driveMode: idealRange * penaltyPercentage.driveMode,
+      ac: baseRange * penaltyPercentage.ac,
+      load: baseRange * penaltyPercentage.load,
+      temp: baseRange * penaltyPercentage.temp,
+      driveMode: baseRange * penaltyPercentage.driveMode,
     };
     
-    // Apply smoothing to the final range
-    const smoothedRange = state.range * 0.9 + predictedRange * 0.1;
-
-    return { range: smoothedRange, predictedDynamicRange: predictedRange, rangePenalties: finalPenalties };
+    return { predictedDynamicRange: predictedRange, rangePenalties: finalPenalties };
   }, []);
 
   const updateVehicleState = useCallback((prevState: VehicleState & AiState): VehicleState & AiState => {
@@ -293,12 +296,11 @@ export function useVehicleSimulation() {
         const chargePerSecond = 1 / 5; // 1% SOC every 5 seconds
         newSOC += chargePerSecond * timeDelta;
         newSOC = Math.min(100, newSOC);
-        const rangeUpdates = calculateDynamicRange(prevState, prevState);
         return {
             ...prevState,
             batterySOC: newSOC,
+            range: prevState.initialRange * (newSOC / 100),
             lastUpdate: now,
-            ...rangeUpdates
         };
     }
     
@@ -366,12 +368,7 @@ export function useVehicleSimulation() {
     const energyUsedKwh = smoothedPower * (timeDelta / 3600);
     const socDelta = (energyUsedKwh / prevState.packNominalCapacity_kWh) * 100;
     
-    if (smoothedPower < 0) {
-      newSOC -= socDelta; // socDelta is negative, so this adds to SOC
-    } else {
-      newSOC -= socDelta;
-    }
-
+    newSOC -= socDelta;
     newSOC = Math.max(0, Math.min(100, newSOC));
     
     const newOdometer = prevState.odometer + distanceTraveledKm;
@@ -400,6 +397,7 @@ export function useVehicleSimulation() {
       tripB: prevState.activeTrip === 'B' ? prevState.tripB + distanceTraveledKm : prevState.tripB,
       power: smoothedPower,
       batterySOC: newSOC,
+      range: prevState.initialRange * (newSOC / 100),
       recentWhPerKm: newRecentWhPerKm,
       recentWhPerKmWindow: newRecentWhPerKmWindow,
       lastUpdate: now,
