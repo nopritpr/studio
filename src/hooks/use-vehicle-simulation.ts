@@ -196,51 +196,40 @@ export function useVehicleSimulation() {
 
   const toggleCharging = useCallback(() => {
     if (!firestore) return;
+    const now = Date.now();
+    const state = stateRef.current;
+    const isNowCharging = !state.isCharging;
 
-    setVehicleState(prevState => {
-        const isNowCharging = !prevState.isCharging;
-        const now = Date.now();
-    
-        if (isNowCharging) {
-            // This is handled in the UI, but as a safeguard.
-            if (prevState.speed > 0) {
-              return prevState;
-            }
-            return {
-                ...prevState,
-                isCharging: true,
-                lastChargeLog: {
-                    startTime: now,
-                    startSOC: prevState.batterySOC,
-                },
-            };
-        } else {
-            const { lastChargeLog, batterySOC } = prevState;
-            if (!lastChargeLog) {
-                return { ...prevState, isCharging: false };
-            }
-    
-            const energyAdded = (batterySOC - lastChargeLog.startSOC) / 100 * prevState.packNominalCapacity_kWh;
-            
-            const newLog = {
-                startTime: lastChargeLog.startTime,
-                endTime: now,
-                startSOC: lastChargeLog.startSOC,
-                endSOC: batterySOC,
-                energyAdded: Math.max(0, energyAdded),
-            };
-
-            // Save the new log to the charging_logs collection
-            addDoc(collection(firestore, 'charging_logs'), newLog)
-              .catch(error => console.error("Error adding charging log:", error));
-
-            return {
-                ...prevState,
-                isCharging: false,
-                lastChargeLog: undefined,
-            };
-        }
-    });
+    if (isNowCharging) {
+      if (state.speed > 0) return;
+      setVehicleState(prevState => ({
+        ...prevState,
+        isCharging: true,
+        lastChargeLog: {
+          startTime: now,
+          startSOC: prevState.batterySOC,
+        },
+      }));
+    } else {
+      const { lastChargeLog, batterySOC } = state;
+      if (lastChargeLog) {
+        const energyAdded = (batterySOC - lastChargeLog.startSOC) / 100 * state.packNominalCapacity_kWh;
+        const newLog = {
+          startTime: lastChargeLog.startTime,
+          endTime: now,
+          startSOC: lastChargeLog.startSOC,
+          endSOC: batterySOC,
+          energyAdded: Math.max(0, energyAdded),
+        };
+        addDoc(collection(firestore, 'charging_logs'), newLog)
+          .catch(error => console.error("Error adding charging log:", error));
+      }
+      setVehicleState(prevState => ({
+        ...prevState,
+        isCharging: false,
+        lastChargeLog: undefined,
+      }));
+    }
   }, [firestore]);
 
   const resetTrip = useCallback(() => {
@@ -300,30 +289,26 @@ export function useVehicleSimulation() {
     const distanceTraveledKm = newSpeedKmh * (timeDelta / 3600);
     const speedMps = newSpeedKmh / 3.6;
 
-    // --- Start of New Physics-Based Power Calculation ---
     let powerKw: number;
 
-    if (newSpeedKmh < 1) {
-        // At very low speeds, use a simple base power draw to avoid instability
-        powerKw = currentAcceleration > 0 ? 3.0 : 0.5; // Small power draw to start, or idle
+    if (newSpeedKmh < 1 && currentAcceleration > 0) {
+      powerKw = 2.5; 
+    } else if (newSpeedKmh < 1) {
+      powerKw = 0; 
     } else {
-        // Physics Forces
         const fAero = 0.5 * EV_CONSTANTS.airDensity * EV_CONSTANTS.frontalArea_m2 * EV_CONSTANTS.dragCoeff * Math.pow(speedMps, 2);
         const fRoll = EV_CONSTANTS.rollingResistanceCoeff * EV_CONSTANTS.mass_kg * EV_CONSTANTS.gravity;
         const fInertia = EV_CONSTANTS.mass_kg * currentAcceleration;
 
         const totalTractiveForce = fAero + fRoll + fInertia;
         const tractivePowerWatts = totalTractiveForce * speedMps;
-
-        if (tractivePowerWatts > 0) {
-            // Motive power - factor in drivetrain efficiency losses
+        
+        if (tractivePowerWatts >= 0) {
             powerKw = tractivePowerWatts / (1000 * EV_CONSTANTS.drivetrainEfficiency);
         } else {
-            // Regenerative braking - factor in regen efficiency
             powerKw = (tractivePowerWatts * EV_CONSTANTS.regenEfficiency) / 1000;
         }
     }
-    // --- End of New Physics-Based Power Calculation ---
     
     if (prevState.acOn) {
         powerKw += EV_CONSTANTS.acPower_kW * (Math.min(1, Math.abs(prevState.acTemp - prevState.outsideTemp) / 10));
@@ -648,3 +633,5 @@ export function useVehicleSimulation() {
     toggleCabinOverheatProtection,
   };
 }
+
+    
