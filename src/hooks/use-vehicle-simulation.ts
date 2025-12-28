@@ -12,7 +12,7 @@ import { monitorDriverFatigue, type DriverFatigueInput } from '@/ai/flows/driver
 import { getAcUsageImpact, type AcUsageImpactInput } from '@/ai/flows/ac-usage-impact-forecaster';
 import { getWeatherImpact } from '@/ai/flows/weather-impact-forecast';
 import { useFirestore } from '@/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
 const keys: Record<string, boolean> = {
   ArrowUp: false,
@@ -126,6 +126,7 @@ export function useVehicleSimulation() {
       // Don't save transient UI state or large objects that don't need persistence
       delete (stateToSave as any).weather;
       delete (stateToSave as any).weatherForecast;
+      delete (stateToSave as any).chargingLogs; // No longer saving logs in vehicle state
 
       const docRef = doc(firestore, 'vehicle_states', 'singleton');
       setDoc(docRef, stateToSave, { merge: true }).catch(error => {
@@ -194,6 +195,8 @@ export function useVehicleSimulation() {
   }, [triggerIdlePrediction]);
 
   const toggleCharging = useCallback(() => {
+    if (!firestore) return;
+
     setVehicleState(prevState => {
         const isNowCharging = !prevState.isCharging;
         const now = Date.now();
@@ -212,30 +215,33 @@ export function useVehicleSimulation() {
                 },
             };
         } else {
-            const { lastChargeLog, chargingLogs, batterySOC } = prevState;
+            const { lastChargeLog, batterySOC } = prevState;
             if (!lastChargeLog) {
                 return { ...prevState, isCharging: false };
             }
     
             const energyAdded = (batterySOC - lastChargeLog.startSOC) / 100 * prevState.packNominalCapacity_kWh;
-            const newLog: ChargingLog = {
+            
+            const newLog = {
                 startTime: lastChargeLog.startTime,
                 endTime: now,
                 startSOC: lastChargeLog.startSOC,
                 endSOC: batterySOC,
                 energyAdded: Math.max(0, energyAdded),
             };
-            const newLogs = [...chargingLogs, newLog].slice(-10);
-    
+
+            // Save the new log to the charging_logs collection
+            addDoc(collection(firestore, 'charging_logs'), newLog)
+              .catch(error => console.error("Error adding charging log:", error));
+
             return {
                 ...prevState,
                 isCharging: false,
-                chargingLogs: newLogs,
                 lastChargeLog: undefined,
             };
         }
     });
-  }, []);
+  }, [firestore]);
 
   const resetTrip = useCallback(() => {
     setVehicleState(prevState => {
@@ -314,7 +320,7 @@ export function useVehicleSimulation() {
             powerKw = tractivePowerWatts / (1000 * EV_CONSTANTS.drivetrainEfficiency);
         } else {
             // Regenerative braking - factor in regen efficiency
-            powerKw = tractivePowerWatts * EV_CONSTANTS.regenEfficiency / 1000;
+            powerKw = (tractivePowerWatts * EV_CONSTANTS.regenEfficiency) / 1000;
         }
     }
     // --- End of New Physics-Based Power Calculation ---

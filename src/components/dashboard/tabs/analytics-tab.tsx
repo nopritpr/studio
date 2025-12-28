@@ -2,24 +2,31 @@
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import ChargingHabitChart from "../charts/charging-habit-chart";
-import type { VehicleState } from "@/lib/types";
+import type { VehicleState, ChargingLog } from "@/lib/types";
 import { BatteryCharging, Zap, TrendingUp, AlertTriangle } from "lucide-react";
 import DynamicRangeChart from "../charts/dynamic-range-chart";
 import FatigueMonitorGauge from "../charts/fatigue-monitor-gauge";
-import { EV_CONSTANTS } from "@/lib/constants";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection } from "firebase/firestore";
 
 interface AnalyticsTabProps {
     state: VehicleState;
 }
 
 export default function AnalyticsTab({ state }: AnalyticsTabProps) {
+    const firestore = useFirestore();
+    const chargingLogsQuery = useMemoFirebase(
+      () => firestore ? collection(firestore, 'charging_logs') : null,
+      [firestore]
+    );
+    const { data: chargingLogs, isLoading: logsLoading } = useCollection<ChargingLog>(chargingLogsQuery);
 
     const analyzeChargingPatterns = () => {
         const patterns = { Night: 0, Morning: 0, Afternoon: 0, Evening: 0, Weekend: 0 };
-        if (!state.chargingLogs || state.chargingLogs.length === 0) {
+        if (!chargingLogs || chargingLogs.length === 0) {
             return [20, 20, 20, 20, 20];
         }
-        state.chargingLogs.forEach(log => {
+        chargingLogs.forEach(log => {
             const date = new Date(log.startTime);
             const hour = date.getHours();
             const day = date.getDay();
@@ -32,7 +39,7 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
             if (day === 0 || day === 6) patterns.Weekend++;
         });
         
-        const total = state.chargingLogs.length;
+        const total = chargingLogs.length;
         if (total === 0) return [0, 0, 0, 0, 0];
         
         return [
@@ -47,6 +54,8 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
     // Average cost of petrol per km in India (assuming 15 km/l and Rs 100/l) is ~Rs 6.67
     // Average cost of EV charging per km (assuming 7 km/kWh and Rs 8/kWh) is ~Rs 1.14
     const savings = state.odometer > 0 ? state.odometer * (6.67 - 1.14) : 0;
+    
+    const sortedLogs = chargingLogs ? [...chargingLogs].sort((a, b) => b.startTime - a.startTime) : [];
 
     return (
         <div className="h-full grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4 min-h-0">
@@ -55,12 +64,14 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                     <CardTitle className="text-sm font-headline flex items-center gap-2"><BatteryCharging className="w-4 h-4"/>Charging Log</CardTitle>
                 </CardHeader>
                 <CardContent className="flex-grow overflow-y-auto pr-2 min-h-0">
-                    {state.chargingLogs.length === 0 ? (
+                    {logsLoading ? (
+                         <p className="text-sm text-muted-foreground text-center py-8">Loading charging logs...</p>
+                    ) : !chargingLogs || chargingLogs.length === 0 ? (
                         <p className="text-sm text-muted-foreground text-center py-8">No charging sessions logged.</p>
                     ) : (
                         <div className="space-y-2">
-                        {state.chargingLogs.slice().reverse().map((log, index) => (
-                            <div key={index} className="text-xs p-2 rounded-md bg-muted/50">
+                        {sortedLogs.map((log) => (
+                            <div key={log.id} className="text-xs p-2 rounded-md bg-muted/50">
                                 <p><strong>{new Date(log.startTime).toLocaleString()}</strong></p>
                                 <p>Duration: {((log.endTime - log.startTime) / 60000).toFixed(1)} mins</p>
                                 <p>SOC: {log.startSOC.toFixed(1)}% → {log.endSOC.toFixed(1)}% (+{(log.endSOC - log.startSOC).toFixed(1)}%)</p>
