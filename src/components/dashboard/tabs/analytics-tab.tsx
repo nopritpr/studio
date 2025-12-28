@@ -3,11 +3,12 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import ChargingHabitChart from "../charts/charging-habit-chart";
 import type { VehicleState, ChargingLog } from "@/lib/types";
-import { BatteryCharging, Zap, TrendingUp, AlertTriangle } from "lucide-react";
+import { BatteryCharging, Zap, TrendingUp, AlertTriangle, Trash2 } from "lucide-react";
 import DynamicRangeChart from "../charts/dynamic-range-chart";
 import FatigueMonitorGauge from "../charts/fatigue-monitor-gauge";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { collection, doc, deleteDoc } from "firebase/firestore";
+import { Button } from "@/components/ui/button";
 
 interface AnalyticsTabProps {
     state: VehicleState;
@@ -20,6 +21,16 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
       [firestore]
     );
     const { data: chargingLogs, isLoading: logsLoading } = useCollection<ChargingLog>(chargingLogsQuery);
+
+    const handleDeleteLog = async (logId: string) => {
+        if (!firestore) return;
+        const logRef = doc(firestore, 'charging_logs', logId);
+        try {
+            await deleteDoc(logRef);
+        } catch (error) {
+            console.error("Error deleting charging log:", error);
+        }
+    };
 
     const analyzeChargingPatterns = () => {
         const patterns = { Night: 0, Morning: 0, Afternoon: 0, Evening: 0, Weekend: 0 };
@@ -71,11 +82,20 @@ export default function AnalyticsTab({ state }: AnalyticsTabProps) {
                     ) : (
                         <div className="space-y-2">
                         {sortedLogs.map((log) => (
-                            <div key={log.id} className="text-xs p-2 rounded-md bg-muted/50">
+                            <div key={log.id} className="text-xs p-2 rounded-md bg-muted/50 relative group">
                                 <p><strong>{new Date(log.startTime).toLocaleString()}</strong></p>
                                 <p>Duration: {((log.endTime - log.startTime) / 60000).toFixed(1)} mins</p>
                                 <p>SOC: {log.startSOC.toFixed(1)}% → {log.endSOC.toFixed(1)}% (+{(log.endSOC - log.startSOC).toFixed(1)}%)</p>
                                 <p>Energy: {log.energyAdded.toFixed(2)} kWh</p>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute top-1 right-1 h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => handleDeleteLog(log.id)}
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    <span className="sr-only">Delete log</span>
+                                </Button>
                             </div>
                         ))}
                         </div>
