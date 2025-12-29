@@ -601,7 +601,6 @@ export function useVehicleSimulation() {
       triggerIdlePrediction();
     }, 5000);
 
-    const coachInterval = setInterval(triggerDrivingCoach, 15000);
     const fatigueInterval = setInterval(triggerFatigueCheck, 2000);
 
     const weatherInterval = setInterval(() => {
@@ -613,11 +612,10 @@ export function useVehicleSimulation() {
 
     return () => {
         clearInterval(acInterval);
-        clearInterval(coachInterval);
         clearInterval(fatigueInterval);
         clearInterval(weatherInterval);
     };
-  }, [triggerAcUsageImpact, triggerIdlePrediction, triggerFatigueCheck, fetchWeatherData, triggerDrivingCoach]);
+  }, [triggerAcUsageImpact, triggerIdlePrediction, triggerFatigueCheck, fetchWeatherData]);
 
   // Initial Geolocation and Weather Fetch
   useEffect(() => {

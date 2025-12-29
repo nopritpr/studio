@@ -14,7 +14,7 @@ import NavigationMap from '../navigation-map';
 import Weather from '../weather';
 import { useToast } from "@/hooks/use-toast";
 import React, { useState, useEffect } from 'react';
-import { Users, Package, Lightbulb } from 'lucide-react';
+import { Users, Package } from 'lucide-react';
 import { Label } from "@/components/ui/label";
 
 interface DashboardTabProps {
@@ -29,16 +29,6 @@ interface DashboardTabProps {
   setPassengers: (count: number) => void;
   toggleGoodsInBoot: () => void;
 }
-
-const AICoachingCard = ({ recommendation, justification }: { recommendation: string, justification: string | null }) => (
-  <Card className="p-4 flex flex-col h-40">
-    <h3 className="font-semibold mb-2 text-sm font-headline flex items-center gap-2"><Lightbulb className="text-yellow-400" size={16}/>AI Driving Coach</h3>
-    <div className="flex-grow flex flex-col items-center justify-center text-center">
-      <p className="text-sm font-semibold leading-snug">{recommendation}</p>
-      {justification && <p className="text-xs text-muted-foreground mt-2">{justification}</p>}
-    </div>
-  </Card>
-);
 
 export default function DashboardTab({
   state,
@@ -113,13 +103,8 @@ export default function DashboardTab({
             />
           </div>
         </Card>
-
-        <AICoachingCard
-            recommendation={state.drivingRecommendation}
-            justification={state.drivingRecommendationJustification}
-        />
         
-        <div className="flex-grow min-h-0 mt-2">
+        <div className="flex-grow min-h-0">
           <Weather weather={state.weather} forecast={state.weatherForecast} />
         </div>
       </div>
@@ -183,7 +168,7 @@ export default function DashboardTab({
         </Card>
 
         <Card className="p-4 flex-grow">
-            <h3 className="font-semibold mb-2 text-sm font-headline">Trip & Load</h3>
+            <h3 className="font-semibold mb-2 text-sm font-headline">Trip &amp; Load</h3>
             <div className="space-y-2 text-xs">
                 <p className="flex justify-between items-center"><span>Odometer:</span> <span className="font-mono font-semibold">{state.odometer.toFixed(1)} km</span></p>
                 <div className="flex items-center justify-between">
