@@ -1,13 +1,13 @@
-# ⚡ Electron Drive: Transparent AI for EV Range Prediction
+#  Electron Drive: Transparent AI for EV Range Prediction
 
 **A hybrid Electric Vehicle dashboard simulator combining deterministic physics and prompt-engineered Generative AI to deliver transparent, multi-factor range predictions and real-time driver insights.**
-<img width="1012" height="817" alt="Screenshot 2025-12-29 135638" src="https://github.com/user-attachments/assets/7d1748e2-d7a9-4e8b-ba28-5ba1f68d3838" />
+<img width="1034" height="825" alt="Screenshot 2025-12-29 135612" src="https://github.com/user-attachments/assets/731aca2e-f843-422c-970a-e5a1b40e9fc9" />
 <img width="994" height="807" alt="Screenshot 2025-12-29 135626" src="https://github.com/user-attachments/assets/ffa7f45d-68c0-4670-a379-8eabd48ccf1b" />
 <img width="1012" height="817" alt="Screenshot 2025-12-29 135638" src="https://github.com/user-attachments/assets/378daa13-a053-42f5-bf7e-48d3309e61ae" />
 
 ---
 
-## 🧩 Overview
+## Overview
 
 **Electron Drive** addresses the biggest barrier in EV adoption — **range anxiety**.  
 Most in-vehicle range estimators act as unreliable “guess-o-meters,” ignoring key factors such as ambient temperature, HVAC usage, drive mode, and payload.
@@ -18,7 +18,7 @@ This project demonstrates a **hybrid approach**:
 
 ---
 
-## 🎯 Objectives
+## Objectives
 
 1. **Multi-Factor Range Prediction**  
    Compute energy consumption from first principles (speed, load, temperature, drive mode) and break down penalties visually.
@@ -34,7 +34,7 @@ This project demonstrates a **hybrid approach**:
 
 ---
 
-## ⚙️ Methodology
+## Methodology
 
 | Component | Description |
 |------------|-------------|
@@ -45,21 +45,8 @@ This project demonstrates a **hybrid approach**:
 
 ---
 
-## 📊 Results
 
-| Metric | Target | Achieved | Status |
-|:--|:--|:--|:--|
-| UI Frame Rate | >55 fps | **~60 fps** | ✅ Exceeded |
-| Physics Step Time | <16 ms | **~1 ms** | ✅ Excellent |
-| AI Latency | <2000 ms | **~1500 ms** | ✅ Met |
-| Structured Output Accuracy | >95 % | **>99 %** | ✅ Exceeded |
-| Continuous Runtime | >12 h | **48 + hours** | ✅ Exceeded |
-
-**Key validation scenarios:** multiple drive modes, HVAC on/off, load variation, temperature sweep (5 °C – 45 °C).
-
----
-
-## 🌿 Impact
+## Impact
 
 - **Economic:** Estimates up to **₹55,000 annual savings** per EV through optimized driving and energy efficiency.  
 - **Environmental:** Reduces carbon emission by **≈ 2.3 t CO₂ per vehicle per year**.  
@@ -67,20 +54,8 @@ This project demonstrates a **hybrid approach**:
 
 ---
 
-## 📈 Roadmap
 
-**Phase 2 (Next 6–12 months):**
-- Integrate **Mapbox Elevation API** for route-aware forecasting  
-- Add **Battery SOH degradation modeling**  
-- Optimize charging stops based on SOC and live infrastructure data  
-
-**Phase 3 (12–24 months):**
-- Real-vehicle **CAN/OBD‑II integration**  
-- Smart grid alerts with **time‑of‑use tariffs**  
-
----
-
-## 🚀 Installation & Setup
+## Installation & Setup
 
 ```bash
 # Clone repository
